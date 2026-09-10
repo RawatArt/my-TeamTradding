@@ -1,22 +1,34 @@
 """Strict core enums and boundary schemas."""
 
 from ai_trading_team.schemas.agents import AgentOutput
-from ai_trading_team.schemas.common import TraceableRecord, VersionedObservation
+from ai_trading_team.schemas.common import SnapshotId, TraceableRecord, VersionedObservation
 from ai_trading_team.schemas.decisions import ChiefDecision, RiskEvaluation, TradeProposal
 from ai_trading_team.schemas.enums import (
     ApplicationMode,
     BrokerAccountMode,
     BrokerPositionSide,
+    DataValidityState,
+    FreshnessState,
     MarketRegime,
     MT5ConnectionState,
     RiskDecisionStatus,
     RiskState,
+    SnapshotWarningCode,
     SymbolTradeMode,
     Timeframe,
     TradeAction,
     TradeSide,
 )
-from ai_trading_team.schemas.market import MarketQuote
+from ai_trading_team.schemas.market import (
+    MarketQuote,
+    MarketSnapshot,
+    ObservationFreshness,
+    SnapshotCandles,
+    SnapshotConsistencyMetadata,
+    SnapshotFreshness,
+    SnapshotSourceTimestamps,
+    SnapshotValidationWarning,
+)
 from ai_trading_team.schemas.mt5 import (
     MT5AccountInfo,
     MT5Candle,
@@ -26,6 +38,7 @@ from ai_trading_team.schemas.mt5 import (
     MT5TerminalHealth,
     MT5Tick,
 )
+from ai_trading_team.schemas.timeframes import TIMEFRAME_DURATIONS, timeframe_duration
 
 __all__ = [
     "AgentOutput",
@@ -33,7 +46,10 @@ __all__ = [
     "BrokerAccountMode",
     "BrokerPositionSide",
     "ChiefDecision",
+    "DataValidityState",
+    "FreshnessState",
     "MarketQuote",
+    "MarketSnapshot",
     "MarketRegime",
     "MT5AccountInfo",
     "MT5Candle",
@@ -43,14 +59,24 @@ __all__ = [
     "MT5SymbolSummary",
     "MT5TerminalHealth",
     "MT5Tick",
+    "ObservationFreshness",
     "RiskDecisionStatus",
     "RiskEvaluation",
     "RiskState",
+    "SnapshotCandles",
+    "SnapshotConsistencyMetadata",
+    "SnapshotFreshness",
+    "SnapshotId",
+    "SnapshotSourceTimestamps",
+    "SnapshotValidationWarning",
+    "SnapshotWarningCode",
     "SymbolTradeMode",
+    "TIMEFRAME_DURATIONS",
     "Timeframe",
     "TraceableRecord",
     "TradeAction",
     "TradeProposal",
     "TradeSide",
     "VersionedObservation",
+    "timeframe_duration",
 ]

@@ -19,13 +19,14 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M1 - Read-only MetaTrader 5 connectivity**
+**M2 - Immutable MarketSnapshot composition**
 
-M1 provides a narrow, typed adapter for reading terminal health, account information, broker
-symbols, ticks, completed M15/H1/H4 candles, and existing positions. It cannot place, modify, or
-close orders or positions and does not change Market Watch symbol selection.
+M2 composes the accepted M1 read-only observations into a strict, immutable `MarketSnapshot`.
+Every snapshot has a caller-supplied `cycle_id` and `snapshot_id`, configured broker symbol,
+completed M15/H1/H4 candle histories, account state, symbol-scoped open positions, retrieval
+timestamps, duration, freshness classifications, and typed validation warnings.
 
-`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M1 startup policy
+`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M2 startup policy
 rejects it. No execution path exists in this milestone.
 
 ## Environment setup
@@ -98,15 +99,60 @@ python -m pytest -m mt5_integration
 
 It fails unless the connected account is classified by MT5 as DEMO. It performs reads only.
 
+## MarketSnapshot composition
+
+The caller owns lifecycle and trace identifiers. `MarketDataService` receives an initialized
+read-only client and uses `TRADING_SYMBOL`; it does not initialize MT5, change symbol selection,
+or expose a trading operation.
+
+```python
+from ai_trading_team.config import AppSettings
+from ai_trading_team.market import MarketDataService
+from ai_trading_team.mt5 import MT5ReadOnlyClient
+from ai_trading_team.schemas.enums import Timeframe
+
+settings = AppSettings()
+client = MT5ReadOnlyClient(settings.mt5)
+
+try:
+    client.initialize()
+    service = MarketDataService(client, settings.market_data, settings.trading_symbol)
+    snapshot = service.build_snapshot(
+        cycle_id="cycle-20260910-001",
+        snapshot_id="snapshot-analysis-001",
+        primary_timeframe=Timeframe.M15,
+    )
+finally:
+    client.shutdown()
+```
+
+M2 separates three concepts:
+
+- Validity: invalid structure or inconsistent timestamps prevent snapshot creation.
+- Freshness: valid observations are classified as `FRESH` or `STALE`.
+- Tradeability: deliberately not evaluated in M2.
+
+Stale data can therefore produce a valid snapshot during a legitimate market closure. The
+default completed-candle counts are 200 for M15, H1, and H4 and are configurable under
+`MARKET_DATA__*` settings.
+
+The M2 demo integration test is also explicit and read-only:
+
+```powershell
+$env:RUN_MT5_INTEGRATION="true"
+$env:TRADING_SYMBOL="YOUR_ALREADY_SELECTED_BROKER_SYMBOL"
+python -m pytest tests/integration/test_market_snapshot_demo.py -m mt5_integration
+```
+
 ## Project structure
 
 ```text
 src/ai_trading_team/
 |-- config/          # Typed settings and milestone startup policy
-|-- schemas/         # Core and MT5 boundary contracts
+|-- schemas/         # Core, MT5, MarketSnapshot, and timeframe contracts
 |-- utils/           # UTC time and structured logging helpers
 |-- mt5/             # M1 read-only client, backend protocol, and mappers
-|-- market/          # Reserved for M2
+|-- market/          # M2 read-only snapshot composition and freshness
 |-- risk/            # Reserved for M3
 |-- agents/          # Reserved for M4
 |-- orchestration/   # Reserved for later decision-cycle orchestration
@@ -116,20 +162,22 @@ src/ai_trading_team/
 
 tests/
 |-- fakes/           # Terminal-independent MT5 test double
-|-- unit/            # Domain, configuration, mapping, and client tests
-|-- integration/     # Opt-in demo-terminal reads
+|-- unit/            # Domain, configuration, adapter, and snapshot tests
+|-- integration/     # Opt-in demo-terminal reads and snapshot composition
 `-- safety/          # Startup and public-surface safety tests
 ```
 
-Every cycle-bound schema derives from one traceable base contract containing `cycle_id`,
-`schema_version`, and a timezone-aware UTC timestamp. M1 external observations are versioned and
-carry UTC retrieval times; M2 will associate them with a decision cycle without fabricating IDs.
+Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
+This permits multiple immutable captures in a future cycle without conflating their identities.
+M1 observations remain independently versioned and retain their UTC retrieval timestamps inside
+the M2 aggregate.
 
 ## Known limitations
 
-- M1 is synchronous and Windows/MetaTrader-terminal dependent.
+- M2 and its M1 source are synchronous and Windows/MetaTrader-terminal dependent.
 - Broker symbols and contract properties vary and must be discovered rather than assumed.
-- The standardized `MarketSnapshot` is deferred to M2.
+- M2 does not infer undocumented broker-server timezone offsets. Source times that appear in the
+  future relative to host UTC are rejected as inconsistent instead of silently shifted.
 - Risk decisions and position sizing are deferred to M3.
 - Agent and LLM behavior is deferred to M4.
 - Shadow automation, demo execution, and live safeguards beyond the M1 startup policy belong to

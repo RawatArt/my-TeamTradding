@@ -52,6 +52,30 @@ class Timeframe(StrEnum):
     H4 = "H4"
 
 
+class DataValidityState(StrEnum):
+    """Structural validity, kept independent from freshness and tradeability."""
+
+    VALID = "VALID"
+    INVALID = "INVALID"
+
+
+class FreshnessState(StrEnum):
+    """Whether a structurally valid observation is within its configured age limit."""
+
+    FRESH = "FRESH"
+    STALE = "STALE"
+
+
+class SnapshotWarningCode(StrEnum):
+    """Non-fatal consistency and freshness findings attached to a valid snapshot."""
+
+    STALE_TICK = "STALE_TICK"
+    STALE_ACCOUNT = "STALE_ACCOUNT"
+    STALE_CANDLE = "STALE_CANDLE"
+    SLOW_SNAPSHOT = "SLOW_SNAPSHOT"
+    OUT_OF_SCOPE_POSITION_OMITTED = "OUT_OF_SCOPE_POSITION_OMITTED"
+
+
 class MarketRegime(StrEnum):
     """Finite market-context labels specified for future analysis."""
 

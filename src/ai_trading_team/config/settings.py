@@ -57,6 +57,22 @@ class MT5Settings(BaseModel):
         return self.login is not None
 
 
+class MarketDataSettings(BaseModel):
+    """Immutable M2 snapshot counts and descriptive freshness thresholds."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    m15_candle_count: int = Field(default=200, ge=1, le=5_000)
+    h1_candle_count: int = Field(default=200, ge=1, le=5_000)
+    h4_candle_count: int = Field(default=200, ge=1, le=5_000)
+    max_tick_age_seconds: int = Field(default=120, ge=1, le=86_400)
+    max_account_age_seconds: int = Field(default=30, ge=1, le=86_400)
+    max_m15_candle_age_seconds: int = Field(default=1_800, ge=1, le=604_800)
+    max_h1_candle_age_seconds: int = Field(default=7_200, ge=1, le=604_800)
+    max_h4_candle_age_seconds: int = Field(default=28_800, ge=1, le=604_800)
+    slow_snapshot_seconds: int = Field(default=30, ge=1, le=3_600)
+
+
 class RiskConstitutionSettings(BaseModel):
     """Immutable risk-policy configuration; no risk-engine behavior lives here.
 
@@ -124,4 +140,5 @@ class AppSettings(BaseSettings):
     log_level: str = Field(default="INFO", pattern=r"^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
     log_json: bool = True
     mt5: MT5Settings = Field(default_factory=MT5Settings)
+    market_data: MarketDataSettings = Field(default_factory=MarketDataSettings)
     risk: RiskConstitutionSettings = Field(default_factory=RiskConstitutionSettings)
