@@ -46,6 +46,21 @@ class CoreModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+class VersionedObservation(CoreModel):
+    """Version and capture time for external observations outside a decision cycle."""
+
+    schema_version: SchemaVersion = "1.0.0"
+    retrieved_at: datetime
+
+    @field_validator("retrieved_at")
+    @classmethod
+    def require_retrieved_timezone_and_normalize_utc(cls, value: datetime) -> datetime:
+        """Reject naive retrieval times and normalize aware values to UTC."""
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("retrieved_at must be timezone-aware")
+        return value.astimezone(UTC)
+
+
 class TraceableRecord(CoreModel):
     """Required trace envelope for every decision-cycle-bound record."""
 

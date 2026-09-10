@@ -1,6 +1,6 @@
 """Finite domain states kept separate by responsibility."""
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 
 
 class ApplicationMode(StrEnum):
@@ -62,3 +62,34 @@ class MarketRegime(StrEnum):
     BREAKOUT = "BREAKOUT"
     UNCERTAIN = "UNCERTAIN"
 
+
+class MT5ConnectionState(StrEnum):
+    """Observed MT5 terminal connection state."""
+
+    CONNECTED = "CONNECTED"
+    DISCONNECTED = "DISCONNECTED"
+
+
+class BrokerAccountMode(IntEnum):
+    """MetaTrader 5 broker account classification."""
+
+    DEMO = 0
+    CONTEST = 1
+    REAL = 2
+
+
+class SymbolTradeMode(IntEnum):
+    """MetaTrader 5 symbol trading availability value."""
+
+    DISABLED = 0
+    LONG_ONLY = 1
+    SHORT_ONLY = 2
+    CLOSE_ONLY = 3
+    FULL = 4
+
+
+class BrokerPositionSide(IntEnum):
+    """Direction reported for an existing broker position."""
+
+    BUY = 0
+    SELL = 1

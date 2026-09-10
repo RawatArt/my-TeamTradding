@@ -1,8 +1,18 @@
 """Typed application settings loaded from environment variables."""
 
 from decimal import Decimal
+from pathlib import Path
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PositiveInt,
+    SecretStr,
+    StringConstraints,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ai_trading_team.schemas.common import (
@@ -12,6 +22,39 @@ from ai_trading_team.schemas.common import (
     Symbol,
 )
 from ai_trading_team.schemas.enums import ApplicationMode
+
+MT5Server = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+
+
+class MT5Settings(BaseModel):
+    """Read-only MT5 connection settings.
+
+    Login and server are sensitive metadata for logging purposes. Password remains a SecretStr.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    terminal_path: Path | None = None
+    login: PositiveInt | None = None
+    password: SecretStr | None = None
+    server: MT5Server | None = None
+    timeout_ms: int = Field(default=60_000, ge=1_000, le=120_000)
+    portable: bool = False
+
+    @model_validator(mode="after")
+    def require_complete_explicit_credentials(self) -> "MT5Settings":
+        """Require login, password, and server together or omit all three."""
+        supplied = (self.login is not None, self.password is not None, self.server is not None)
+        if any(supplied) and not all(supplied):
+            raise ValueError("MT5 login, password, and server must be configured together")
+        if self.password is not None and not self.password.get_secret_value():
+            raise ValueError("MT5 password must not be empty")
+        return self
+
+    @property
+    def has_explicit_credentials(self) -> bool:
+        """Return whether a complete explicit credential set is present."""
+        return self.login is not None
 
 
 class RiskConstitutionSettings(BaseModel):
@@ -80,4 +123,5 @@ class AppSettings(BaseSettings):
     trading_symbol: Symbol | None = None
     log_level: str = Field(default="INFO", pattern=r"^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$")
     log_json: bool = True
+    mt5: MT5Settings = Field(default_factory=MT5Settings)
     risk: RiskConstitutionSettings = Field(default_factory=RiskConstitutionSettings)

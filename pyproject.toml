@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-trading-team"
-version = "0.1.0"
+version = "0.2.0"
 description = "A safety-first, AI-assisted trading research platform."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Proprietary" }
 authors = [{ name = "AI Trading Team" }]
 dependencies = [
+    "MetaTrader5==5.0.6180; sys_platform == 'win32'",
     "pydantic>=2.10,<3",
     "pydantic-settings>=2.7,<3",
 ]
@@ -30,9 +31,13 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
+cache_dir = ".cache/pytest"
 minversion = "8.0"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "mt5_integration: requires an explicitly enabled Windows MT5 demo terminal",
+]
 
 [tool.ruff]
 line-length = 100
@@ -47,4 +52,3 @@ python_version = "3.12"
 strict = true
 files = ["src", "tests"]
 warn_unreachable = true
-

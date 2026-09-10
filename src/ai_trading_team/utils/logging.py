@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import TextIO
 
-from pydantic import SecretStr
+from pydantic import BaseModel, SecretStr
 
 _STANDARD_LOG_RECORD_FIELDS = frozenset(
     {
@@ -36,7 +36,17 @@ _STANDARD_LOG_RECORD_FIELDS = frozenset(
         "taskName",
     }
 )
-_SENSITIVE_KEY_PARTS = ("api_key", "credential", "password", "secret", "token")
+_SENSITIVE_KEY_PARTS = (
+    "account_id",
+    "api_key",
+    "credential",
+    "login",
+    "password",
+    "secret",
+    "server",
+    "terminal_path",
+    "token",
+)
 
 
 def _is_sensitive_key(key: str) -> bool:
@@ -49,6 +59,8 @@ def _sanitize(value: object, key: str | None = None) -> object:
         return "[REDACTED]"
     if isinstance(value, SecretStr):
         return "[REDACTED]"
+    if isinstance(value, BaseModel):
+        return _sanitize(value.model_dump(mode="python"))
     if isinstance(value, Mapping):
         return {
             str(item_key): _sanitize(item_value, str(item_key))

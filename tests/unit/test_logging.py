@@ -2,7 +2,11 @@ import io
 import json
 import logging
 from decimal import Decimal
+from pathlib import Path
 
+from pydantic import SecretStr
+
+from ai_trading_team.config.settings import AppSettings, MT5Settings
 from ai_trading_team.utils.logging import configure_logging
 
 
@@ -40,3 +44,23 @@ def test_configure_logging_does_not_duplicate_handlers() -> None:
     assert first.getvalue() == ""
     assert second.getvalue().count("single_event") == 1
 
+
+def test_structured_logger_redacts_sensitive_values_inside_settings_models() -> None:
+    stream = io.StringIO()
+    logger = configure_logging(stream=stream)
+    settings = AppSettings(
+        mt5=MT5Settings(
+            terminal_path=Path("C:/Users/private/terminal64.exe"),
+            login=12345678,
+            password=SecretStr("demo-password"),
+            server="Broker-Demo",
+        )
+    )
+
+    logger.info("settings_test", extra={"settings": settings})
+
+    output = stream.getvalue()
+    assert "12345678" not in output
+    assert "demo-password" not in output
+    assert "Broker-Demo" not in output
+    assert "C:/Users/private" not in output
