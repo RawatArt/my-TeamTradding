@@ -10,6 +10,7 @@ from ai_trading_team.config.startup import (
     M0_STARTUP_POLICY,
     M1_STARTUP_POLICY,
     M2_STARTUP_POLICY,
+    M3_STARTUP_POLICY,
     StartupPolicy,
     StartupPolicyError,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "M0_STARTUP_POLICY",
     "M1_STARTUP_POLICY",
     "M2_STARTUP_POLICY",
+    "M3_STARTUP_POLICY",
     "MarketDataSettings",
     "MT5Settings",
     "RiskConstitutionSettings",

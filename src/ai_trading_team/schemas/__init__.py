@@ -1,8 +1,13 @@
 """Strict core enums and boundary schemas."""
 
 from ai_trading_team.schemas.agents import AgentOutput
-from ai_trading_team.schemas.common import SnapshotId, TraceableRecord, VersionedObservation
-from ai_trading_team.schemas.decisions import ChiefDecision, RiskEvaluation, TradeProposal
+from ai_trading_team.schemas.common import (
+    AccountReference,
+    SnapshotId,
+    TraceableRecord,
+    VersionedObservation,
+)
+from ai_trading_team.schemas.decisions import ChiefDecision, TradeProposal
 from ai_trading_team.schemas.enums import (
     ApplicationMode,
     BrokerAccountMode,
@@ -11,7 +16,9 @@ from ai_trading_team.schemas.enums import (
     FreshnessState,
     MarketRegime,
     MT5ConnectionState,
+    PositionSizingStatus,
     RiskDecisionStatus,
+    RiskReasonCode,
     RiskState,
     SnapshotWarningCode,
     SymbolTradeMode,
@@ -38,10 +45,20 @@ from ai_trading_team.schemas.mt5 import (
     MT5TerminalHealth,
     MT5Tick,
 )
+from ai_trading_team.schemas.risk import (
+    AccountRiskContext,
+    AccountRiskMetrics,
+    PositionSizingResult,
+    RiskDecision,
+    RiskReason,
+)
 from ai_trading_team.schemas.timeframes import TIMEFRAME_DURATIONS, timeframe_duration
 
 __all__ = [
     "AgentOutput",
+    "AccountReference",
+    "AccountRiskContext",
+    "AccountRiskMetrics",
     "ApplicationMode",
     "BrokerAccountMode",
     "BrokerPositionSide",
@@ -60,8 +77,12 @@ __all__ = [
     "MT5TerminalHealth",
     "MT5Tick",
     "ObservationFreshness",
+    "PositionSizingResult",
+    "PositionSizingStatus",
+    "RiskDecision",
     "RiskDecisionStatus",
-    "RiskEvaluation",
+    "RiskReason",
+    "RiskReasonCode",
     "RiskState",
     "SnapshotCandles",
     "SnapshotConsistencyMetadata",

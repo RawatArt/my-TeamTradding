@@ -4,16 +4,18 @@ from ai_trading_team.schemas.common import (
     Confidence,
     FiniteDecimal,
     Identifier,
+    SnapshotId,
     Symbol,
     TraceableRecord,
 )
-from ai_trading_team.schemas.enums import RiskDecisionStatus, TradeAction, TradeSide
+from ai_trading_team.schemas.enums import TradeAction, TradeSide
 
 
 class TradeProposal(TraceableRecord):
     """An AI-originated proposal that has no execution authority or position size."""
 
     proposal_id: Identifier
+    snapshot_id: SnapshotId
     symbol: Symbol
     side: TradeSide
     entry: FiniteDecimal | None = None
@@ -29,12 +31,3 @@ class ChiefDecision(TraceableRecord):
     confidence: Confidence
     rationale: str
     proposal_id: Identifier | None = None
-
-
-class RiskEvaluation(TraceableRecord):
-    """Result boundary for a future deterministic engine; no engine exists in M0."""
-
-    proposal_id: Identifier
-    status: RiskDecisionStatus
-    reasons: tuple[str, ...]
-

@@ -24,6 +24,10 @@ SnapshotId = Annotated[
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
     ),
 ]
+AccountReference = Annotated[
+    str,
+    StringConstraints(pattern=r"^acct-v1:[0-9a-f]{64}$"),
+]
 SchemaVersion = Annotated[
     str,
     StringConstraints(strip_whitespace=True, pattern=r"^\d+\.\d+\.\d+$"),

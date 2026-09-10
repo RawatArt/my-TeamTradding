@@ -6,8 +6,8 @@ import pytest
 from pydantic import ValidationError
 
 from ai_trading_team.schemas.agents import AgentOutput
-from ai_trading_team.schemas.decisions import RiskEvaluation, TradeProposal
-from ai_trading_team.schemas.enums import RiskDecisionStatus, Timeframe, TradeAction, TradeSide
+from ai_trading_team.schemas.decisions import TradeProposal
+from ai_trading_team.schemas.enums import Timeframe, TradeAction, TradeSide
 from ai_trading_team.schemas.market import MarketQuote
 
 
@@ -103,7 +103,7 @@ def test_agent_confidence_outside_closed_unit_interval_is_rejected() -> None:
         )
 
 
-def test_decision_and_risk_records_share_the_same_cycle() -> None:
+def test_trade_proposal_is_cycle_and_snapshot_traceable() -> None:
     timestamp = datetime.now(UTC)
     proposal = TradeProposal.model_validate(
         {
@@ -111,6 +111,7 @@ def test_decision_and_risk_records_share_the_same_cycle() -> None:
             "schema_version": "1.0.0",
             "timestamp": timestamp,
             "proposal_id": "proposal-002",
+            "snapshot_id": "snapshot-002",
             "symbol": "XAUUSDm",
             "side": TradeSide.BUY,
             "entry": "2400.10",
@@ -119,17 +120,9 @@ def test_decision_and_risk_records_share_the_same_cycle() -> None:
             "rationale": "Boundary-contract test only",
         }
     )
-    evaluation = RiskEvaluation(
-        cycle_id=proposal.cycle_id,
-        schema_version=proposal.schema_version,
-        timestamp=timestamp,
-        proposal_id=proposal.proposal_id,
-        status=RiskDecisionStatus.REJECTED,
-        reasons=("No risk engine exists in M0",),
-    )
-
-    assert evaluation.cycle_id == proposal.cycle_id
-    assert evaluation.schema_version == proposal.schema_version
+    assert proposal.cycle_id == "cycle-002"
+    assert proposal.snapshot_id == "snapshot-002"
+    assert proposal.schema_version == "1.0.0"
     assert isinstance(proposal.entry, Decimal)
     assert "position_size" not in TradeProposal.model_fields
 
