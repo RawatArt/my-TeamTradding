@@ -30,6 +30,7 @@ from ai_trading_team.schemas.runtime import (
     AgentInvocationRequest,
     AgentInvocationResult,
     AIBudgetPolicy,
+    BudgetReservation,
     InvocationTelemetry,
     InvocationTrace,
     InvocationUsage,
@@ -76,9 +77,9 @@ class RuntimeRouter:
         started_monotonic = self._monotonic()
         attempts = 0
         estimate = self._unavailable_estimate(started_at)
-        reserved_amount: Decimal | None = None
         reservation_state: BudgetReservationState | None = None
         provider_response: ProviderResponse | None = None
+        attempt_reservations: list[BudgetReservation] = []
 
         try:
             contract = contract_for_role(request.descriptor.role)
@@ -121,28 +122,9 @@ class RuntimeRouter:
                 contract,
                 estimate,
             )
-            reservation = self._budget.reserve(
-                invocation_id=request.invocation_id,
-                cycle_id=request.cycle_id,
-                runtime=runtime,
-                capability_input_estimate=estimate,
-                policy=budget_policy,
-                pricing=pricing,
-                at=started_at,
-            )
-            reserved_amount = reservation.reserved_amount
-            reservation_state = reservation.state
-
             last_error: ProviderError | None = None
             for attempt in range(1, retry_policy.max_attempts + 1):
-                attempts = attempt
                 attempt_request = provider_request.model_copy(update={"attempt": attempt})
-                if attempt == 1:
-                    reservation = self._budget.mark_dispatched(
-                        request.invocation_id,
-                        at=self._utc_now(),
-                    )
-                    reservation_state = reservation.state
                 remaining = runtime.total_timeout_seconds - (
                     self._monotonic() - started_monotonic
                 )
@@ -151,9 +133,28 @@ class RuntimeRouter:
                         RuntimeFailureCategory.PROVIDER_TIMEOUT,
                         "total invocation timeout exceeded",
                         retryable=False,
-                        dispatch_occurred=True,
+                        dispatch_occurred=False,
                     )
                     break
+                reservation = self._budget.reserve(
+                    invocation_id=request.invocation_id,
+                    cycle_id=request.cycle_id,
+                    runtime=runtime,
+                    capability_input_estimate=estimate,
+                    policy=budget_policy,
+                    pricing=pricing,
+                    at=self._utc_now(),
+                    attempt_number=attempt,
+                )
+                attempts = attempt
+                attempt_reservations.append(reservation)
+                reservation = self._budget.mark_dispatched(
+                    request.invocation_id,
+                    attempt_number=attempt,
+                    at=self._utc_now(),
+                )
+                attempt_reservations[-1] = reservation
+                reservation_state = reservation.state
                 try:
                     provider_response = await asyncio.wait_for(
                         adapter.invoke(attempt_request),
@@ -170,6 +171,28 @@ class RuntimeRouter:
                     )
                 except ProviderError as exc:
                     last_error = exc
+                except Exception as exc:
+                    last_error = ProviderError(
+                        RuntimeFailureCategory.UNKNOWN_PROVIDER_ERROR,
+                        "provider adapter failed unexpectedly",
+                        retryable=False,
+                        dispatch_occurred=True,
+                    )
+                    last_error.__cause__ = exc
+                if last_error.dispatch_occurred:
+                    reservation = self._budget.mark_uncertain(
+                        request.invocation_id,
+                        attempt_number=attempt,
+                        at=self._utc_now(),
+                    )
+                else:
+                    reservation = self._budget.release_undispatched_attempt(
+                        request.invocation_id,
+                        attempt_number=attempt,
+                        at=self._utc_now(),
+                    )
+                attempt_reservations[-1] = reservation
+                reservation_state = reservation.state
                 if not self._retry_allowed(last_error, retry_policy) or (
                     attempt >= retry_policy.max_attempts
                 ):
@@ -178,26 +201,24 @@ class RuntimeRouter:
 
             if provider_response is None:
                 assert last_error is not None
-                reservation = self._budget.mark_uncertain(
-                    request.invocation_id,
-                    at=self._utc_now(),
-                )
-                reservation_state = reservation.state
                 raise last_error
 
             settled_cost = self._reported_cost(provider_response.usage, pricing)
             if settled_cost is None:
                 reservation = self._budget.mark_uncertain(
                     request.invocation_id,
+                    attempt_number=attempts,
                     at=self._utc_now(),
                 )
             else:
                 reservation = self._budget.settle(
                     request.invocation_id,
                     settled_cost,
+                    attempt_number=attempts,
                     at=self._utc_now(),
                 )
             reservation_state = reservation.state
+            attempt_reservations[-1] = reservation
 
             body = parse_model_body(provider_response.response_json, contract)
             status = AgentOutputStatus.DEGRADED if body.warnings else AgentOutputStatus.SUCCESS
@@ -242,7 +263,7 @@ class RuntimeRouter:
                     attempts=attempts,
                     started_monotonic=started_monotonic,
                     pricing=pricing,
-                    reserved_amount=reserved_amount,
+                    attempt_reservations=tuple(attempt_reservations),
                     provider_request_id=provider_response.provider_request_id,
                     reservation_state=reservation_state,
                 ),
@@ -257,9 +278,6 @@ class RuntimeRouter:
             runtime_error = exc
 
         completed_at = self._utc_now()
-        if reservation_state is BudgetReservationState.RESERVED:
-            released = self._budget.release(request.invocation_id, at=completed_at)
-            reservation_state = released.state
         return AgentInvocationResult(
             trace=self._trace(
                 request,
@@ -278,7 +296,7 @@ class RuntimeRouter:
                 attempts=attempts,
                 started_monotonic=started_monotonic,
                 pricing=pricing,
-                reserved_amount=reserved_amount,
+                attempt_reservations=tuple(attempt_reservations),
                 provider_request_id=(
                     provider_response.provider_request_id if provider_response else None
                 ),
@@ -349,17 +367,36 @@ class RuntimeRouter:
         attempts: int,
         started_monotonic: float,
         pricing: PricingProfile,
-        reserved_amount: Decimal | None,
+        attempt_reservations: tuple[BudgetReservation, ...],
         provider_request_id: str | None,
         reservation_state: BudgetReservationState | None,
     ) -> InvocationTelemetry:
         reported_cost = self._reported_cost(usage, pricing)
-        cost = reported_cost if reported_cost is not None else reserved_amount
+        reserved_amount = sum(
+            (
+                item.settled_amount
+                if item.state is BudgetReservationState.SETTLED
+                and item.settled_amount is not None
+                else item.reserved_amount
+                if item.state is not BudgetReservationState.RELEASED
+                else Decimal("0")
+                for item in attempt_reservations
+            ),
+            start=Decimal("0"),
+        )
+        prior_attempts_are_released = all(
+            item.state is BudgetReservationState.RELEASED
+            for item in attempt_reservations[:-1]
+        )
+        exact_reported = reported_cost is not None and prior_attempts_are_released
+        cost = reported_cost if exact_reported else (
+            reserved_amount if attempt_reservations else None
+        )
         availability = (
             MetricAvailability.REPORTED
-            if reported_cost is not None
+            if exact_reported
             else MetricAvailability.ESTIMATED
-            if reserved_amount is not None
+            if attempt_reservations
             else MetricAvailability.UNAVAILABLE
         )
         return InvocationTelemetry(
@@ -373,6 +410,7 @@ class RuntimeRouter:
             currency=pricing.currency,
             provider_request_id=provider_request_id,
             reservation_state=reservation_state,
+            attempt_reservations=attempt_reservations,
         )
 
     @staticmethod

@@ -76,6 +76,7 @@ class AnthropicTransport:
 
 class AnthropicAdapter(ProviderAdapterBase):
     provider = ModelProvider.ANTHROPIC
+    adapter_version = "1.0.0"
 
     def _create_transport(self, api_key: SecretStr) -> ProviderTransport:
         return AnthropicTransport(api_key)

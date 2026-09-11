@@ -116,6 +116,29 @@ def test_retryable_provider_failure_never_exceeds_max_attempts() -> None:
     assert adapter.invoke_count == 3
     assert result.telemetry.reservation_state is BudgetReservationState.UNCERTAIN
     assert ledger.get(result.trace.invocation_id).state is BudgetReservationState.UNCERTAIN  # type: ignore[union-attr]
+    attempts = ledger.attempts(result.trace.invocation_id)
+    assert [item.attempt_number for item in attempts] == [1, 2, 3]
+    assert all(item.state is BudgetReservationState.UNCERTAIN for item in attempts)
+
+
+def test_retry_attempt_keeps_logical_identity_and_has_its_own_reservation() -> None:
+    transient = ProviderError(
+        RuntimeFailureCategory.PROVIDER_TRANSIENT,
+        "sanitized transient error",
+        retryable=True,
+        dispatch_occurred=True,
+    )
+    adapter = FakeProviderAdapter([transient, provider_response()])
+    result, ledger = invoke(adapter, max_attempts=2)
+
+    assert result.output is not None
+    assert {request.invocation_id for request in adapter.requests} == {result.trace.invocation_id}
+    assert [request.attempt for request in adapter.requests] == [1, 2]
+    reservations = ledger.attempts(result.trace.invocation_id)
+    assert [item.state for item in reservations] == [
+        BudgetReservationState.UNCERTAIN,
+        BudgetReservationState.SETTLED,
+    ]
 
 
 def test_nonretryable_provider_failure_calls_provider_once() -> None:
@@ -131,6 +154,23 @@ def test_nonretryable_provider_failure_calls_provider_once() -> None:
     assert result.output is None
     assert adapter.invoke_count == 1
     assert result.trace.attempts == 1
+
+
+def test_definitely_undispatched_provider_failure_releases_only_that_attempt() -> None:
+    failure = ProviderError(
+        RuntimeFailureCategory.PROVIDER_AUTHENTICATION,
+        "provider rejected request before dispatch",
+        retryable=False,
+        dispatch_occurred=False,
+    )
+    adapter = FakeProviderAdapter([failure])
+    result, ledger = invoke(adapter)
+
+    assert result.output is None
+    assert result.telemetry.reservation_state is BudgetReservationState.RELEASED
+    reservation = ledger.get(result.trace.invocation_id)
+    assert reservation is not None
+    assert reservation.state is BudgetReservationState.RELEASED
 
 
 def test_rate_limit_is_not_retried_when_policy_disallows_it() -> None:

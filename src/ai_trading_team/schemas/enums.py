@@ -386,3 +386,56 @@ class RuntimeFailureCategory(StrEnum):
     PROVIDER_REFUSAL = "PROVIDER_REFUSAL"
     INVALID_MODEL_OUTPUT = "INVALID_MODEL_OUTPUT"
     UNKNOWN_PROVIDER_ERROR = "UNKNOWN_PROVIDER_ERROR"
+
+
+class CycleClaimState(StrEnum):
+    """Durable lifecycle of one claimed shadow decision cycle."""
+
+    INCOMPLETE = "INCOMPLETE"
+    FINALIZED = "FINALIZED"
+    ABANDONED = "ABANDONED"
+
+
+class StageExecutionStatus(StrEnum):
+    """Trusted orchestration result for one fixed pipeline stage."""
+
+    COMPLETED = "COMPLETED"
+    DEGRADED = "DEGRADED"
+    SKIPPED = "SKIPPED"
+    HOLD = "HOLD"
+    ABORTED = "ABORTED"
+
+
+class ShadowDisposition(StrEnum):
+    """Terminal M6 outcome; none of these values represents broker execution."""
+
+    WOULD_BUY = "WOULD_BUY"
+    WOULD_SELL = "WOULD_SELL"
+    CHIEF_HOLD = "CHIEF_HOLD"
+    POLICY_HOLD = "POLICY_HOLD"
+    RISK_REJECTED = "RISK_REJECTED"
+    RISK_HALTED = "RISK_HALTED"
+    ABORTED = "ABORTED"
+
+
+class ShadowOutcomeSource(StrEnum):
+    """Trusted component that determined the final shadow disposition."""
+
+    CHIEF_TRADER = "CHIEF_TRADER"
+    FAILURE_POLICY = "FAILURE_POLICY"
+    RISK_ENGINE = "RISK_ENGINE"
+    ORCHESTRATOR = "ORCHESTRATOR"
+
+
+class ShadowExecutionStatus(StrEnum):
+    """The only execution status permitted in M6."""
+
+    NOT_EXECUTED_SHADOW = "NOT_EXECUTED_SHADOW"
+
+
+class QuantStageSelection(StrEnum):
+    """Explicit pre-cycle selection for optional conditional quant roles."""
+
+    SKIP = "SKIP"
+    QUANT_RESEARCH_ONLY = "QUANT_RESEARCH_ONLY"
+    QUANT_AND_SENIOR_REVIEW = "QUANT_AND_SENIOR_REVIEW"

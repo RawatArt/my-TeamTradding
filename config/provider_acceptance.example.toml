@@ -1,0 +1,3 @@
+# M6 ships with no accepted real provider/model pair.
+# Add records only after an explicit M5 live-smoke run and review. Never put credentials here.
+acceptance = []

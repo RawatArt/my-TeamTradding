@@ -1,0 +1,67 @@
+# Explicit opt-in M6 real-provider SHADOW test configuration.
+# All model capabilities and prices are caller-owned, time-sensitive facts. Replace every
+# placeholder, generate a matching provider-acceptance record after M5 smoke acceptance, and
+# keep credentials in environment variables only.
+
+[runtime]
+profile_ref = "replace-runtime-profile"
+profile_version = "1.0.0"
+provider = "OPENAI"
+model_identifier = "replace-model"
+request_timeout_seconds = 30
+total_timeout_seconds = 90
+max_output_tokens = 1024
+reasoning_effort = "NONE"
+require_structured_output = true
+require_json_schema = true
+capability_profile_ref = "replace-capability-profile"
+retry_policy_ref = "replace-retry-policy"
+cost_policy_ref = "replace-budget-policy"
+pricing_profile_ref = "replace-pricing-profile"
+
+[capability]
+profile_ref = "replace-capability-profile"
+profile_version = "1.0.0"
+provider = "OPENAI"
+model_identifier = "replace-model"
+structured_output_supported = true
+json_schema_supported = true
+reasoning_configuration_supported = false
+supported_reasoning_efforts = ["NONE"]
+max_context_tokens = 1
+max_output_tokens = 1
+usage_metrics = []
+token_estimation_methods = ["CONSERVATIVE_ESTIMATE"]
+adapter_contract_accepted = true
+live_smoke_accepted = true
+
+[retry]
+policy_ref = "replace-retry-policy"
+policy_version = "1.0.0"
+max_attempts = 1
+retry_timeouts = false
+retry_transient_errors = false
+retry_rate_limits = false
+
+[budget]
+policy_ref = "replace-budget-policy"
+policy_version = "1.0.0"
+currency = "USD"
+maximum_estimated_cost_per_call = "0"
+daily_budget = "0"
+monthly_budget = "0"
+maximum_calls_per_cycle = 6
+maximum_calls_per_day = 6
+maximum_input_tokens = 1
+maximum_output_tokens = 1
+
+[pricing]
+profile_ref = "replace-pricing-profile"
+profile_version = "1.0.0"
+provider = "OPENAI"
+model_identifier = "replace-model"
+currency = "USD"
+input_cost_per_million_tokens = "0"
+output_cost_per_million_tokens = "0"
+valid_from = "2026-01-01T00:00:00Z"
+

@@ -19,25 +19,24 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M5 - Single-agent LLM runtime foundation**
+**M6 - SHADOW multi-agent decision runtime**
 
-M5 adds immutable prompt artifacts, requested runtime profiles, separately validated model
-capabilities, a provider-neutral single-agent router, strict structured-output validation,
-telemetry, and conservative AI budget reservations. OpenAI, Anthropic, and Gemini integrations
-are optional and isolated inside their adapter packages. Application startup makes no provider
-or network call, and M5 implements no multi-agent scheduler or trading loop.
+M6 adds a one-shot, explicitly invoked SHADOW cycle over the accepted M4 stage graph and M5
+single-agent runtime. It records agent outputs and failures, a Chief BUY/SELL/HOLD decision, the
+authoritative M3 Risk decision when applicable, and a non-executable shadow intent. There is no
+new-candle scheduler, continuous trading loop, or broker mutation path.
 
 The Performance Reviewer is confined to a separate retrospective pipeline. Quant Researcher and
 Senior Quant Developer are conditional/offline-capable rather than mandatory on every decision
 cycle. The realtime graph ends at the existing deterministic M3 Risk Engine; no agent can invoke
 it or bypass it.
 
-`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M5 startup policy
-rejects it. No execution path exists in this milestone.
+`LIVE` remains part of the durable `ApplicationMode` type, but the M6 runtime policy permits only
+`SHADOW`. No execution path exists in this milestone.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M5. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M6. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -247,7 +246,9 @@ M4 `AgentOutput` after successful validation. Invalid JSON/schema is not repaire
 Token estimates expose whether they are provider-reported, tokenizer-derived, conservatively
 estimated, or unavailable. Budget reservations move through `RESERVED`, `DISPATCHED`, `SETTLED`,
 `RELEASED`, or `UNCERTAIN`; a timeout after dispatch never assumes the provider did not charge.
-SQLite enforces unique invocation identity so the same invocation cannot dispatch twice.
+Each provider attempt has its own reservation while retaining one deterministic logical
+invocation identity. SQLite rejects a duplicate attempt and prevents the same logical invocation
+from being dispatched twice outside its bounded retry sequence.
 
 Provider smoke tests require an explicit flag, matching secret, and explicit model identifier:
 
@@ -261,6 +262,36 @@ Use the analogous `RUN_ANTHROPIC_SMOKE` / `ANTHROPIC_SMOKE_MODEL` or
 `RUN_GEMINI_SMOKE` / `GEMINI_SMOKE_MODEL` variables. Credentials are loaded through the ignored
 `.env` settings shown in `.env.example`. Missing credentials leave that provider unaccepted for
 later runtime use but do not invalidate the provider-neutral M5 core.
+
+## One-shot SHADOW decision cycle
+
+M6 exposes an explicitly invoked `ShadowCycleOrchestrator`; it does not schedule itself. Before
+the first agent call, trusted code claims the cycle and validates snapshot/context trace IDs, the
+safe account fingerprint, and UTC temporal consistency. Duplicate or previously incomplete cycle
+IDs fail closed without redispatch. A crash leaves the claim auditable as `INCOMPLETE`; an
+operator may mark it `ABANDONED`, but neither state can be reused or resumed automatically.
+
+Stage 1 runs Market Context, Trend, and Price Action concurrently. Entry follows, optional Quant
+roles run only when the configured cycle policy selects them, and the bounded Skeptic/Chief
+exchange runs for one round by default (maximum three). Only a Chief BUY/SELL proposal reaches
+the existing deterministic M3 Risk Engine. Chief HOLD, policy HOLD, risk rejection, risk halt,
+and orchestration aborts remain non-executable outcomes.
+
+Logical agent invocation IDs are derived from cycle, snapshot, stage, role, and debate round;
+provider retries keep that ID and use distinct attempt numbers. Real-provider eligibility also
+requires a current acceptance record bound to provider/model, adapter and SDK versions,
+capability digest, runtime-profile digest, and smoke-test identity. The checked-in acceptance
+example is intentionally empty.
+
+The terminal-independent full-cycle acceptance test is:
+
+```powershell
+python -m pytest tests/integration/test_shadow_cycle_fake_provider.py
+```
+
+The real-provider SHADOW test is an explicit opt-in and requires a locally supplied accepted
+profile, acceptance registry, credential, and `RUN_M6_PROVIDER_SHADOW=true`. It never accesses
+MT5 or executes an order.
 
 The M2 demo integration test is also explicit and read-only:
 
@@ -283,16 +314,16 @@ src/ai_trading_team/
 |-- agents/          # M4 abstract roles, access rules, and runtime protocol
 |-- prompts/         # M5 immutable prompt artifacts and verified registry
 |-- runtime/         # M5 single-agent router, budgets, validation, and provider adapters
-|-- orchestration/   # M4 stages, failures, debate, and orchestration protocols
+|-- orchestration/   # M4 contracts plus the M6 one-shot SHADOW cycle runtime
 |-- execution/       # Reserved; no execution code exists
 |-- backtest/        # Reserved for M7
-`-- storage/         # M5 SQLite AI-budget ledger; broader audit storage remains deferred
+`-- storage/         # SQLite AI-budget and minimized M6 decision-audit repositories
 
 tests/
-|-- fakes/           # Terminal-independent MT5, market, risk, agent, and provider fixtures
-|-- unit/            # Domain, adapter, market, risk, agent, and policy tests
-|-- integration/     # Opt-in demo-terminal reads and snapshot composition
-`-- safety/          # Startup, read-only, risk, agent, and runtime safety tests
+|-- fakes/           # Terminal-independent MT5, market, risk, agent, provider, and cycle fixtures
+|-- unit/            # Domain, adapter, market, risk, agent, runtime, audit, and policy tests
+|-- integration/     # Fake SHADOW cycle plus explicit MT5/provider acceptance tests
+`-- safety/          # M0-M6 startup and architectural safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -312,8 +343,8 @@ the M2 aggregate.
   loss-side valuation or currency conversion must be rejected by a future runtime until that
   contract gap is resolved.
 - M3 evaluates risk from a valid snapshot but does not decide whether stale data is tradeable.
-- M5 invokes only one explicitly requested agent. No multi-agent scheduling, decision-cycle
-  runtime, new-candle trigger, or provider fallback exists.
+- M6 runs only one explicitly requested decision cycle. It has no new-candle scheduler,
+  continuous trading loop, automatic crash recovery, or provider fallback.
 - Optional real-provider smoke acceptance is tracked separately per provider. An untested
   provider/model is not eligible for later runtime use.
 - Provider-neutral token estimation is explicitly conservative and may over-reserve; caller-owned
@@ -322,8 +353,10 @@ the M2 aggregate.
   invoke them.
 - Performance review is reference-based and offline; no performance store or automatic strategy
   change exists.
-- Shadow automation, demo execution, and live safeguards beyond the M4 startup policy belong to
-  later milestones and require their own acceptance criteria.
+- Real-provider M6 acceptance remains provider/model-specific and requires a current hardened
+  smoke record; the provider-neutral fake cycle does not confer real-provider eligibility.
+- Demo execution, order lifecycle behavior, and live safeguards beyond the M6 SHADOW-only policy
+  belong to later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M5_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M6_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.

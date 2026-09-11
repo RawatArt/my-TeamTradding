@@ -33,6 +33,7 @@ class ProviderAdapterBase:
     """Validate provider identity and delegate only to an isolated transport."""
 
     provider: ModelProvider
+    adapter_version: str
 
     def __init__(
         self,

@@ -69,3 +69,9 @@ M5_STARTUP_POLICY = StartupPolicy(
     allowed_modes=M4_STARTUP_POLICY.allowed_modes,
     allow_live_trading=False,
 )
+
+M6_STARTUP_POLICY = StartupPolicy(
+    milestone="M6",
+    allowed_modes=frozenset({ApplicationMode.SHADOW}),
+    allow_live_trading=False,
+)

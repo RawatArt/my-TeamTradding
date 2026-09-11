@@ -27,27 +27,50 @@ class AtomicBudgetLedger(Protocol):
         policy: AIBudgetPolicy,
     ) -> BudgetReservation: ...
 
-    def mark_dispatched(self, invocation_id: str, *, at: datetime) -> BudgetReservation: ...
-
-    def settle(
-        self, invocation_id: str, amount: Decimal, *, at: datetime
+    def mark_dispatched(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
     ) -> BudgetReservation: ...
 
-    def release(self, invocation_id: str, *, at: datetime) -> BudgetReservation: ...
+    def settle(
+        self,
+        invocation_id: str,
+        amount: Decimal,
+        *,
+        attempt_number: int = 1,
+        at: datetime,
+    ) -> BudgetReservation: ...
 
-    def mark_uncertain(self, invocation_id: str, *, at: datetime) -> BudgetReservation: ...
+    def release(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation: ...
+
+    def mark_uncertain(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation: ...
+
+    def release_undispatched_attempt(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation: ...
 
 
 class InMemoryBudgetLedger:
     """Thread-safe ledger used by unit tests and non-persistent local experiments."""
 
     def __init__(self) -> None:
-        self._records: dict[str, BudgetReservation] = {}
+        self._records: dict[tuple[str, int], BudgetReservation] = {}
         self._lock = RLock()
 
-    def get(self, invocation_id: str) -> BudgetReservation | None:
+    def get(self, invocation_id: str, attempt_number: int = 1) -> BudgetReservation | None:
         with self._lock:
-            return self._records.get(invocation_id)
+            return self._records.get((invocation_id, attempt_number))
+
+    def attempts(self, invocation_id: str) -> tuple[BudgetReservation, ...]:
+        with self._lock:
+            return tuple(
+                item
+                for key, item in sorted(self._records.items(), key=lambda pair: pair[0][1])
+                if key[0] == invocation_id
+            )
 
     def reserve_if_within(
         self,
@@ -55,10 +78,25 @@ class InMemoryBudgetLedger:
         policy: AIBudgetPolicy,
     ) -> BudgetReservation:
         with self._lock:
-            if reservation.invocation_id in self._records:
+            key = (reservation.invocation_id, reservation.attempt_number)
+            existing_attempts = {
+                attempt
+                for invocation, attempt in self._records
+                if invocation == reservation.invocation_id
+            }
+            if key in self._records or (
+                reservation.attempt_number == 1 and existing_attempts
+            ):
                 raise RuntimeInvocationError(
                     RuntimeFailureCategory.DUPLICATE_INVOCATION,
                     "invocation identity has already been reserved",
+                )
+            if reservation.attempt_number > 1 and (
+                reservation.attempt_number - 1 not in existing_attempts
+            ):
+                raise RuntimeInvocationError(
+                    RuntimeFailureCategory.INVALID_REQUEST,
+                    "provider attempts must be reserved consecutively",
                 )
             active = tuple(
                 item
@@ -84,22 +122,30 @@ class InMemoryBudgetLedger:
                 raise self._budget_error("daily AI budget exceeded")
             if self._total(same_month) + reservation.reserved_amount > policy.monthly_budget:
                 raise self._budget_error("monthly AI budget exceeded")
-            self._records[reservation.invocation_id] = reservation
+            self._records[key] = reservation
             return reservation
 
-    def mark_dispatched(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
+    def mark_dispatched(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
         return self._transition(
             invocation_id,
+            attempt_number=attempt_number,
             expected=BudgetReservationState.RESERVED,
             state=BudgetReservationState.DISPATCHED,
             at=at,
         )
 
     def settle(
-        self, invocation_id: str, amount: Decimal, *, at: datetime
+        self,
+        invocation_id: str,
+        amount: Decimal,
+        *,
+        attempt_number: int = 1,
+        at: datetime,
     ) -> BudgetReservation:
         with self._lock:
-            current = self._require(invocation_id)
+            current = self._require(invocation_id, attempt_number)
             if current.state is not BudgetReservationState.DISPATCHED:
                 raise ValueError("only dispatched reservations may be settled")
             if amount < 0 or amount > current.reserved_amount:
@@ -111,22 +157,40 @@ class InMemoryBudgetLedger:
                     "updated_at": at.astimezone(UTC),
                 }
             )
-            self._records[invocation_id] = updated
+            self._records[(invocation_id, attempt_number)] = updated
             return updated
 
-    def release(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
+    def release(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
         return self._transition(
             invocation_id,
+            attempt_number=attempt_number,
             expected=BudgetReservationState.RESERVED,
             state=BudgetReservationState.RELEASED,
             at=at,
         )
 
-    def mark_uncertain(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
+    def mark_uncertain(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
         return self._transition(
             invocation_id,
+            attempt_number=attempt_number,
             expected=BudgetReservationState.DISPATCHED,
             state=BudgetReservationState.UNCERTAIN,
+            at=at,
+        )
+
+    def release_undispatched_attempt(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
+        """Release after trusted confirmation that provider dispatch never occurred."""
+        return self._transition(
+            invocation_id,
+            attempt_number=attempt_number,
+            expected=BudgetReservationState.DISPATCHED,
+            state=BudgetReservationState.RELEASED,
             at=at,
         )
 
@@ -134,21 +198,22 @@ class InMemoryBudgetLedger:
         self,
         invocation_id: str,
         *,
+        attempt_number: int,
         expected: BudgetReservationState,
         state: BudgetReservationState,
         at: datetime,
     ) -> BudgetReservation:
         with self._lock:
-            current = self._require(invocation_id)
+            current = self._require(invocation_id, attempt_number)
             if current.state is not expected:
                 raise ValueError(f"reservation must be {expected.value} before {state.value}")
             updated = current.model_copy(update={"state": state, "updated_at": at.astimezone(UTC)})
-            self._records[invocation_id] = updated
+            self._records[(invocation_id, attempt_number)] = updated
             return updated
 
-    def _require(self, invocation_id: str) -> BudgetReservation:
+    def _require(self, invocation_id: str, attempt_number: int) -> BudgetReservation:
         try:
-            return self._records[invocation_id]
+            return self._records[(invocation_id, attempt_number)]
         except KeyError as exc:
             raise KeyError("budget reservation does not exist") from exc
 
@@ -186,6 +251,7 @@ class BudgetGuard:
         policy: AIBudgetPolicy,
         pricing: PricingProfile,
         at: datetime,
+        attempt_number: int = 1,
     ) -> BudgetReservation:
         if runtime.cost_policy_ref != policy.policy_ref:
             raise RuntimeInvocationError(
@@ -240,6 +306,7 @@ class BudgetGuard:
             )
         reservation = BudgetReservation(
             invocation_id=invocation_id,
+            attempt_number=attempt_number,
             cycle_id=cycle_id,
             policy_ref=policy.policy_ref,
             state=BudgetReservationState.RESERVED,
@@ -250,19 +317,43 @@ class BudgetGuard:
         )
         return self._ledger.reserve_if_within(reservation, policy)
 
-    def mark_dispatched(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
-        return self._ledger.mark_dispatched(invocation_id, at=at)
+    def mark_dispatched(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
+        return self._ledger.mark_dispatched(
+            invocation_id, attempt_number=attempt_number, at=at
+        )
 
     def settle(
-        self, invocation_id: str, amount: Decimal, *, at: datetime
+        self,
+        invocation_id: str,
+        amount: Decimal,
+        *,
+        attempt_number: int = 1,
+        at: datetime,
     ) -> BudgetReservation:
-        return self._ledger.settle(invocation_id, amount, at=at)
+        return self._ledger.settle(
+            invocation_id, amount, attempt_number=attempt_number, at=at
+        )
 
-    def release(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
-        return self._ledger.release(invocation_id, at=at)
+    def release(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
+        return self._ledger.release(invocation_id, attempt_number=attempt_number, at=at)
 
-    def mark_uncertain(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
-        return self._ledger.mark_uncertain(invocation_id, at=at)
+    def mark_uncertain(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
+        return self._ledger.mark_uncertain(
+            invocation_id, attempt_number=attempt_number, at=at
+        )
+
+    def release_undispatched_attempt(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
+        return self._ledger.release_undispatched_attempt(
+            invocation_id, attempt_number=attempt_number, at=at
+        )
 
 
 def estimate_maximum_cost(

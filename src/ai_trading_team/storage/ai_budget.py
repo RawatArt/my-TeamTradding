@@ -21,8 +21,9 @@ class SQLiteBudgetLedger:
         with self._connection:
             self._connection.execute(
                 """
-                CREATE TABLE IF NOT EXISTS ai_budget_reservations (
-                    invocation_id TEXT PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS ai_budget_attempt_reservations (
+                    invocation_id TEXT NOT NULL,
+                    attempt_number INTEGER NOT NULL,
                     cycle_id TEXT NOT NULL,
                     policy_ref TEXT NOT NULL,
                     state TEXT NOT NULL,
@@ -30,7 +31,8 @@ class SQLiteBudgetLedger:
                     settled_amount TEXT,
                     currency TEXT NOT NULL,
                     created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY (invocation_id, attempt_number)
                 )
                 """
             )
@@ -38,12 +40,21 @@ class SQLiteBudgetLedger:
     def close(self) -> None:
         self._connection.close()
 
-    def get(self, invocation_id: str) -> BudgetReservation | None:
+    def get(self, invocation_id: str, attempt_number: int = 1) -> BudgetReservation | None:
         row = self._connection.execute(
-            "SELECT * FROM ai_budget_reservations WHERE invocation_id = ?",
-            (invocation_id,),
+            """SELECT * FROM ai_budget_attempt_reservations
+            WHERE invocation_id = ? AND attempt_number = ?""",
+            (invocation_id, attempt_number),
         ).fetchone()
         return None if row is None else self._to_model(row)
+
+    def attempts(self, invocation_id: str) -> tuple[BudgetReservation, ...]:
+        rows = self._connection.execute(
+            """SELECT * FROM ai_budget_attempt_reservations
+            WHERE invocation_id = ? ORDER BY attempt_number""",
+            (invocation_id,),
+        ).fetchall()
+        return tuple(self._to_model(row) for row in rows)
 
     def reserve_if_within(
         self,
@@ -54,17 +65,36 @@ class SQLiteBudgetLedger:
             self._connection.execute("BEGIN IMMEDIATE")
             try:
                 duplicate = self._connection.execute(
-                    "SELECT 1 FROM ai_budget_reservations WHERE invocation_id = ?",
+                    """SELECT attempt_number FROM ai_budget_attempt_reservations
+                    WHERE invocation_id = ?""",
                     (reservation.invocation_id,),
                 ).fetchone()
-                if duplicate is not None:
+                exact = self._connection.execute(
+                    """SELECT 1 FROM ai_budget_attempt_reservations
+                    WHERE invocation_id = ? AND attempt_number = ?""",
+                    (reservation.invocation_id, reservation.attempt_number),
+                ).fetchone()
+                if exact is not None or (
+                    reservation.attempt_number == 1 and duplicate is not None
+                ):
                     raise RuntimeInvocationError(
                         RuntimeFailureCategory.DUPLICATE_INVOCATION,
                         "invocation identity has already been reserved",
                     )
+                if reservation.attempt_number > 1:
+                    previous = self._connection.execute(
+                        """SELECT 1 FROM ai_budget_attempt_reservations
+                        WHERE invocation_id = ? AND attempt_number = ?""",
+                        (reservation.invocation_id, reservation.attempt_number - 1),
+                    ).fetchone()
+                    if previous is None:
+                        raise RuntimeInvocationError(
+                            RuntimeFailureCategory.INVALID_REQUEST,
+                            "provider attempts must be reserved consecutively",
+                        )
                 rows = self._connection.execute(
                     """
-                    SELECT * FROM ai_budget_reservations
+                    SELECT * FROM ai_budget_attempt_reservations
                     WHERE policy_ref = ? AND state != ?
                     """,
                     (policy.policy_ref, BudgetReservationState.RELEASED.value),
@@ -92,10 +122,12 @@ class SQLiteBudgetLedger:
                     raise self._budget_error("monthly AI budget exceeded")
                 self._connection.execute(
                     """
-                    INSERT INTO ai_budget_reservations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO ai_budget_attempt_reservations
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         reservation.invocation_id,
+                        reservation.attempt_number,
                         reservation.cycle_id,
                         reservation.policy_ref,
                         reservation.state.value,
@@ -112,76 +144,104 @@ class SQLiteBudgetLedger:
                 raise
         return reservation
 
-    def mark_dispatched(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
+    def mark_dispatched(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
         return self._transition(
             invocation_id,
+            attempt_number,
             BudgetReservationState.RESERVED,
             BudgetReservationState.DISPATCHED,
             at,
         )
 
     def settle(
-        self, invocation_id: str, amount: Decimal, *, at: datetime
+        self,
+        invocation_id: str,
+        amount: Decimal,
+        *,
+        attempt_number: int = 1,
+        at: datetime,
     ) -> BudgetReservation:
         with self._lock, self._connection:
-            current = self._require(invocation_id)
+            current = self._require(invocation_id, attempt_number)
             if current.state is not BudgetReservationState.DISPATCHED:
                 raise ValueError("only dispatched reservations may be settled")
             if amount < 0 or amount > current.reserved_amount:
                 raise ValueError("settled amount must be within the reserved amount")
             self._connection.execute(
                 """
-                UPDATE ai_budget_reservations
+                UPDATE ai_budget_attempt_reservations
                 SET state = ?, settled_amount = ?, updated_at = ?
-                WHERE invocation_id = ?
+                WHERE invocation_id = ? AND attempt_number = ?
                 """,
                 (
                     BudgetReservationState.SETTLED.value,
                     str(amount),
                     at.astimezone(UTC).isoformat(),
                     invocation_id,
+                    attempt_number,
                 ),
             )
-            return self._require(invocation_id)
+            return self._require(invocation_id, attempt_number)
 
-    def release(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
+    def release(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
         return self._transition(
             invocation_id,
+            attempt_number,
             BudgetReservationState.RESERVED,
             BudgetReservationState.RELEASED,
             at,
         )
 
-    def mark_uncertain(self, invocation_id: str, *, at: datetime) -> BudgetReservation:
+    def mark_uncertain(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
         return self._transition(
             invocation_id,
+            attempt_number,
             BudgetReservationState.DISPATCHED,
             BudgetReservationState.UNCERTAIN,
+            at,
+        )
+
+    def release_undispatched_attempt(
+        self, invocation_id: str, *, attempt_number: int = 1, at: datetime
+    ) -> BudgetReservation:
+        """Release only when the adapter confirms that no provider dispatch occurred."""
+        return self._transition(
+            invocation_id,
+            attempt_number,
+            BudgetReservationState.DISPATCHED,
+            BudgetReservationState.RELEASED,
             at,
         )
 
     def _transition(
         self,
         invocation_id: str,
+        attempt_number: int,
         expected: BudgetReservationState,
         target: BudgetReservationState,
         at: datetime,
     ) -> BudgetReservation:
         with self._lock, self._connection:
-            current = self._require(invocation_id)
+            current = self._require(invocation_id, attempt_number)
             if current.state is not expected:
                 raise ValueError(f"reservation must be {expected.value} before {target.value}")
             self._connection.execute(
                 """
-                UPDATE ai_budget_reservations SET state = ?, updated_at = ?
-                WHERE invocation_id = ?
+                UPDATE ai_budget_attempt_reservations SET state = ?, updated_at = ?
+                WHERE invocation_id = ? AND attempt_number = ?
                 """,
-                (target.value, at.astimezone(UTC).isoformat(), invocation_id),
+                (target.value, at.astimezone(UTC).isoformat(), invocation_id, attempt_number),
             )
-            return self._require(invocation_id)
+            return self._require(invocation_id, attempt_number)
 
-    def _require(self, invocation_id: str) -> BudgetReservation:
-        item = self.get(invocation_id)
+    def _require(self, invocation_id: str, attempt_number: int) -> BudgetReservation:
+        item = self.get(invocation_id, attempt_number)
         if item is None:
             raise KeyError("budget reservation does not exist")
         return item
@@ -190,6 +250,7 @@ class SQLiteBudgetLedger:
     def _to_model(row: sqlite3.Row) -> BudgetReservation:
         return BudgetReservation(
             invocation_id=row["invocation_id"],
+            attempt_number=row["attempt_number"],
             cycle_id=row["cycle_id"],
             policy_ref=row["policy_ref"],
             state=row["state"],

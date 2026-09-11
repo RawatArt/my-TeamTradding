@@ -220,9 +220,10 @@ class AIBudgetPolicy(CoreModel):
 
 
 class BudgetReservation(CoreModel):
-    """Auditable conservative reservation for one unique invocation."""
+    """Auditable conservative reservation for one provider dispatch attempt."""
 
     invocation_id: Identifier
+    attempt_number: int = Field(default=1, ge=1, le=3)
     cycle_id: CycleId
     policy_ref: Identifier
     state: BudgetReservationState
@@ -234,6 +235,38 @@ class BudgetReservation(CoreModel):
 
     _normalize_created = field_validator("created_at")(_utc)
     _normalize_updated = field_validator("updated_at")(_utc)
+
+
+class ProviderAdapterIdentity(CoreModel):
+    """Observed implementation versions bound by a provider smoke acceptance."""
+
+    provider: ModelProvider
+    adapter_version: SchemaVersion
+    provider_sdk_version: str = Field(min_length=1, max_length=128)
+
+
+class ProviderAcceptanceRecord(CoreModel):
+    """Immutable evidence that one exact real-provider configuration passed smoke testing."""
+
+    schema_version: SchemaVersion = "1.0.0"
+    acceptance_id: Identifier
+    provider: ModelProvider
+    model_identifier: Identifier
+    adapter_version: SchemaVersion
+    provider_sdk_version: str = Field(min_length=1, max_length=128)
+    capability_profile_digest: ContentDigest
+    runtime_profile_digest: ContentDigest
+    smoke_tested_at: datetime
+    smoke_result_id: Identifier
+    accepted: Literal[True] = True
+
+    _normalize_smoke_time = field_validator("smoke_tested_at")(_utc)
+
+    @model_validator(mode="after")
+    def reject_fake_acceptance(self) -> Self:
+        if self.provider is ModelProvider.FAKE:
+            raise ValueError("fake providers do not use live-smoke acceptance records")
+        return self
 
 
 class AgentInvocationRequest(CoreModel):
@@ -340,6 +373,7 @@ class InvocationTelemetry(CoreModel):
     currency: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
     provider_request_id: Identifier | None = None
     reservation_state: BudgetReservationState | None
+    attempt_reservations: tuple[BudgetReservation, ...] = ()
 
     @model_validator(mode="after")
     def validate_cost(self) -> Self:
@@ -350,6 +384,18 @@ class InvocationTelemetry(CoreModel):
                 raise ValueError("unavailable cost must not carry a value")
         elif self.estimated_cost is None or self.estimated_cost < 0:
             raise ValueError("available estimated cost must be non-negative")
+        if len(self.attempt_reservations) != self.attempt_count:
+            raise ValueError("every provider attempt requires one reservation record")
+        if any(
+            item.attempt_number != index
+            for index, item in enumerate(self.attempt_reservations, start=1)
+        ):
+            raise ValueError("attempt reservations must be consecutive and ordered")
+        expected_state = (
+            self.attempt_reservations[-1].state if self.attempt_reservations else None
+        )
+        if self.reservation_state is not expected_state:
+            raise ValueError("reservation state must match the final provider attempt")
         return self
 
 

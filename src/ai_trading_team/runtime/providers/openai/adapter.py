@@ -83,6 +83,7 @@ class OpenAITransport:
 
 class OpenAIAdapter(ProviderAdapterBase):
     provider = ModelProvider.OPENAI
+    adapter_version = "1.0.0"
 
     def _create_transport(self, api_key: SecretStr) -> ProviderTransport:
         return OpenAITransport(api_key)

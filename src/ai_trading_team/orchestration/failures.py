@@ -46,7 +46,11 @@ class AgentFailurePolicy:
             AgentFailureCategory.TIMEOUT,
             AgentFailureCategory.UNAVAILABLE_AGENT,
         }:
-            if role in {AgentRole.QUANT_RESEARCHER, AgentRole.PERFORMANCE_REVIEWER}:
+            if role in {
+                AgentRole.QUANT_RESEARCHER,
+                AgentRole.SENIOR_QUANT_DEVELOPER,
+                AgentRole.PERFORMANCE_REVIEWER,
+            }:
                 return FailureDisposition.CONTINUE_DEGRADED
             if role in _STAGE_ONE_ROLES and stage_one_successes >= 2:
                 return FailureDisposition.CONTINUE_DEGRADED

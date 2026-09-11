@@ -109,6 +109,36 @@ def test_duplicate_invocation_id_is_rejected_before_second_dispatch() -> None:
         )
 
 
+def test_distinct_retry_attempt_is_reserved_under_same_logical_invocation() -> None:
+    ledger = InMemoryBudgetLedger()
+    guard = BudgetGuard(ledger)
+    first = guard.reserve(
+        invocation_id="invocation-attempts",
+        cycle_id=CYCLE_ID,
+        runtime=runtime_profile(),
+        capability_input_estimate=estimate(),
+        policy=budget_policy(),
+        pricing=pricing_profile(),
+        at=EVALUATED_AT,
+    )
+    guard.mark_dispatched(first.invocation_id, at=EVALUATED_AT)
+    guard.mark_uncertain(first.invocation_id, at=EVALUATED_AT)
+
+    second = guard.reserve(
+        invocation_id=first.invocation_id,
+        attempt_number=2,
+        cycle_id=CYCLE_ID,
+        runtime=runtime_profile(),
+        capability_input_estimate=estimate(),
+        policy=budget_policy(),
+        pricing=pricing_profile(),
+        at=EVALUATED_AT,
+    )
+
+    assert second.attempt_number == 2
+    assert len(ledger.attempts(first.invocation_id)) == 2
+
+
 def test_budget_rejects_unavailable_estimate_and_per_call_excess() -> None:
     guard = BudgetGuard(InMemoryBudgetLedger())
     unavailable = TokenEstimate(
@@ -157,4 +187,39 @@ def test_sqlite_ledger_persists_identity_and_state(tmp_path: Path) -> None:
             pricing=pricing_profile(),
             at=EVALUATED_AT,
         )
+    reopened.close()
+
+
+def test_sqlite_ledger_persists_distinct_attempts_for_one_invocation(tmp_path: Path) -> None:
+    path = tmp_path / "attempts.sqlite3"
+    ledger = SQLiteBudgetLedger(path)
+    guard = BudgetGuard(ledger)
+    first = guard.reserve(
+        invocation_id="invocation-sqlite-attempts",
+        cycle_id=CYCLE_ID,
+        runtime=runtime_profile(),
+        capability_input_estimate=estimate(),
+        policy=budget_policy(),
+        pricing=pricing_profile(),
+        at=EVALUATED_AT,
+    )
+    guard.mark_dispatched(first.invocation_id, at=EVALUATED_AT)
+    guard.mark_uncertain(first.invocation_id, at=EVALUATED_AT)
+    guard.reserve(
+        invocation_id=first.invocation_id,
+        attempt_number=2,
+        cycle_id=CYCLE_ID,
+        runtime=runtime_profile(),
+        capability_input_estimate=estimate(),
+        policy=budget_policy(),
+        pricing=pricing_profile(),
+        at=EVALUATED_AT,
+    )
+    ledger.close()
+
+    reopened = SQLiteBudgetLedger(path)
+    attempts = reopened.attempts(first.invocation_id)
+    assert [item.attempt_number for item in attempts] == [1, 2]
+    assert attempts[0].state is BudgetReservationState.UNCERTAIN
+    assert attempts[1].state is BudgetReservationState.RESERVED
     reopened.close()

@@ -63,7 +63,7 @@ def test_one_stage_one_availability_failure_can_continue_with_quorum(
     )
 
 
-def test_quant_research_failure_can_degrade_but_invoked_senior_quant_failure_holds() -> None:
+def test_conditional_quant_role_availability_failures_can_degrade() -> None:
     assert (
         AgentFailurePolicy.resolve(
             AgentFailureCategory.TIMEOUT,
@@ -76,7 +76,7 @@ def test_quant_research_failure_can_degrade_but_invoked_senior_quant_failure_hol
             AgentFailureCategory.TIMEOUT,
             role=AgentRole.SENIOR_QUANT_DEVELOPER,
         )
-        is FailureDisposition.HOLD
+        is FailureDisposition.CONTINUE_DEGRADED
     )
 
 

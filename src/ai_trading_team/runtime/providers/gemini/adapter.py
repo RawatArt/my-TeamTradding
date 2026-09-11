@@ -80,6 +80,7 @@ class GeminiTransport:
 
 class GeminiAdapter(ProviderAdapterBase):
     provider = ModelProvider.GEMINI
+    adapter_version = "1.0.0"
 
     def _create_transport(self, api_key: SecretStr) -> ProviderTransport:
         return GeminiTransport(api_key)

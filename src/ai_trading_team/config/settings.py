@@ -21,7 +21,7 @@ from ai_trading_team.schemas.common import (
     PositiveDecimal,
     Symbol,
 )
-from ai_trading_team.schemas.enums import ApplicationMode
+from ai_trading_team.schemas.enums import ApplicationMode, QuantStageSelection
 
 MT5Server = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
 
@@ -142,6 +142,17 @@ class LLMRuntimeSettings(BaseModel):
     gemini_api_key: SecretStr | None = None
 
 
+class ShadowRuntimeSettings(BaseModel):
+    """M6 one-shot SHADOW orchestration settings; no scheduler is represented."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    audit_database_path: Path = Path("data/shadow_audit.sqlite3")
+    provider_acceptance_path: Path = Path("config/provider_acceptance.toml")
+    quant_stage_selection: QuantStageSelection = QuantStageSelection.SKIP
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -164,3 +175,4 @@ class AppSettings(BaseSettings):
     risk: RiskConstitutionSettings = Field(default_factory=RiskConstitutionSettings)
     agents: AgentFrameworkSettings = Field(default_factory=AgentFrameworkSettings)
     llm: LLMRuntimeSettings = Field(default_factory=LLMRuntimeSettings)
+    shadow: ShadowRuntimeSettings = Field(default_factory=ShadowRuntimeSettings)
