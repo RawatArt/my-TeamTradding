@@ -63,3 +63,9 @@ M4_STARTUP_POLICY = StartupPolicy(
     allowed_modes=M3_STARTUP_POLICY.allowed_modes,
     allow_live_trading=False,
 )
+
+M5_STARTUP_POLICY = StartupPolicy(
+    milestone="M5",
+    allowed_modes=M4_STARTUP_POLICY.allowed_modes,
+    allow_live_trading=False,
+)

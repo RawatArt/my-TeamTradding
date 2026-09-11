@@ -1,13 +1,14 @@
 """Strict M4 agent metadata, sanitized market views, and role outputs."""
 
 from datetime import UTC, datetime
-from typing import Annotated, Literal, Self
+from typing import Literal, Self
 
-from pydantic import Field, NonNegativeInt, StringConstraints, field_validator, model_validator
+from pydantic import Field, NonNegativeInt, field_validator, model_validator
 
 from ai_trading_team.schemas.common import (
     AgentName,
     Confidence,
+    ContentDigest,
     CoreModel,
     CycleId,
     FiniteDecimal,
@@ -38,8 +39,6 @@ from ai_trading_team.schemas.enums import (
     TrendStrength,
 )
 from ai_trading_team.schemas.market import MarketSnapshot, SnapshotFreshness
-
-ContentDigest = Annotated[str, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
 
 
 def _utc(value: datetime) -> datetime:

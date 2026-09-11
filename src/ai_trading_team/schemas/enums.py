@@ -312,3 +312,77 @@ class PipelineComponent(StrEnum):
     CHIEF_TRADER = "CHIEF_TRADER"
     PERFORMANCE_REVIEWER = "PERFORMANCE_REVIEWER"
     RISK_ENGINE = "RISK_ENGINE"
+
+
+class ModelProvider(StrEnum):
+    """Vendor-neutral provider identities supported by the M5 adapter layer."""
+
+    OPENAI = "OPENAI"
+    ANTHROPIC = "ANTHROPIC"
+    GEMINI = "GEMINI"
+    FAKE = "FAKE"
+
+
+class ReasoningEffort(StrEnum):
+    """Portable requested reasoning level; providers may support only a subset."""
+
+    NONE = "NONE"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+
+class TokenEstimateMethod(StrEnum):
+    """Provenance for token counts and estimates."""
+
+    PROVIDER_REPORTED = "PROVIDER_REPORTED"
+    PROVIDER_TOKENIZER = "PROVIDER_TOKENIZER"
+    CONSERVATIVE_ESTIMATE = "CONSERVATIVE_ESTIMATE"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class MetricAvailability(StrEnum):
+    """Whether a normalized telemetry value is reported, estimated, or absent."""
+
+    REPORTED = "REPORTED"
+    ESTIMATED = "ESTIMATED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class UsageMetric(StrEnum):
+    """Provider usage fields M5 can represent without fabrication."""
+
+    INPUT_TOKENS = "INPUT_TOKENS"
+    CACHED_INPUT_TOKENS = "CACHED_INPUT_TOKENS"
+    OUTPUT_TOKENS = "OUTPUT_TOKENS"
+    REASONING_TOKENS = "REASONING_TOKENS"
+
+
+class BudgetReservationState(StrEnum):
+    """Conservative AI-budget reservation lifecycle."""
+
+    RESERVED = "RESERVED"
+    DISPATCHED = "DISPATCHED"
+    SETTLED = "SETTLED"
+    RELEASED = "RELEASED"
+    UNCERTAIN = "UNCERTAIN"
+
+
+class RuntimeFailureCategory(StrEnum):
+    """Stable failure classes emitted by the single-agent M5 runtime."""
+
+    INVALID_REQUEST = "INVALID_REQUEST"
+    INVALID_PROMPT_REFERENCE = "INVALID_PROMPT_REFERENCE"
+    SCHEMA_INCOMPATIBLE = "SCHEMA_INCOMPATIBLE"
+    CAPABILITY_INCOMPATIBLE = "CAPABILITY_INCOMPATIBLE"
+    BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
+    DUPLICATE_INVOCATION = "DUPLICATE_INVOCATION"
+    PROVIDER_UNAVAILABLE = "PROVIDER_UNAVAILABLE"
+    PROVIDER_AUTHENTICATION = "PROVIDER_AUTHENTICATION"
+    PROVIDER_PERMISSION = "PROVIDER_PERMISSION"
+    PROVIDER_RATE_LIMIT = "PROVIDER_RATE_LIMIT"
+    PROVIDER_TRANSIENT = "PROVIDER_TRANSIENT"
+    PROVIDER_TIMEOUT = "PROVIDER_TIMEOUT"
+    PROVIDER_REFUSAL = "PROVIDER_REFUSAL"
+    INVALID_MODEL_OUTPUT = "INVALID_MODEL_OUTPUT"
+    UNKNOWN_PROVIDER_ERROR = "UNKNOWN_PROVIDER_ERROR"

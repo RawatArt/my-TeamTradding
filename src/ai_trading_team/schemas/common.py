@@ -35,6 +35,7 @@ SchemaVersion = Annotated[
 Symbol = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
 AgentName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
 Identifier = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+ContentDigest = Annotated[str, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
 
 FiniteDecimal = Annotated[Decimal, Field(allow_inf_nan=False)]
 NonNegativeDecimal = Annotated[Decimal, Field(ge=Decimal("0"), allow_inf_nan=False)]

@@ -19,23 +19,25 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M4 - Agent foundation and orchestration contracts**
+**M5 - Single-agent LLM runtime foundation**
 
-M4 defines nine typed agent roles, immutable input/output envelopes, least-privilege information
-views, deterministic stage metadata, bounded debate rules, and vendor-neutral future runtime
-interfaces. It makes no model or network call and implements no scheduler or trading loop.
+M5 adds immutable prompt artifacts, requested runtime profiles, separately validated model
+capabilities, a provider-neutral single-agent router, strict structured-output validation,
+telemetry, and conservative AI budget reservations. OpenAI, Anthropic, and Gemini integrations
+are optional and isolated inside their adapter packages. Application startup makes no provider
+or network call, and M5 implements no multi-agent scheduler or trading loop.
 
 The Performance Reviewer is confined to a separate retrospective pipeline. Quant Researcher and
 Senior Quant Developer are conditional/offline-capable rather than mandatory on every decision
 cycle. The realtime graph ends at the existing deterministic M3 Risk Engine; no agent can invoke
 it or bypass it.
 
-`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M4 startup policy
+`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M5 startup policy
 rejects it. No execution path exists in this milestone.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M4. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M5. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -47,6 +49,11 @@ Copy-Item .env.example .env
 ```
 
 Do not place real credentials in `.env.example`. The local `.env` file is ignored by Git.
+Install the pinned optional provider SDK set only when running explicit provider smoke tests:
+
+```powershell
+python -m pip install -e ".[dev,providers]"
+```
 
 ## Commands
 
@@ -224,6 +231,37 @@ M4 defines policy only; it does not schedule these stages. Stale-but-valid M2 da
 For a future realtime decision cycle, M4 policy maps a stale snapshot to `HOLD` without changing
 the snapshot or making stale synonymous with invalid.
 
+## Single-agent model runtime
+
+M5 accepts one caller-constructed `AgentInvocationRequest` at a time. It verifies the prompt
+digest and exact role schemas, checks the requested runtime profile against a separate validated
+`ModelCapabilityProfile`, reserves a conservative Decimal budget, and calls exactly one provider
+adapter. There is no provider fallback, and a referenced retry policy permits at most three total
+calls through unambiguous `max_attempts` semantics.
+
+Models generate only semantic role content: confidence, evidence, warnings, invalidations, and a
+typed role payload. They cannot declare `SUCCESS`/`DEGRADED`, alter trace or policy metadata,
+choose a provider, size risk, or execute. Trusted runtime code constructs status and the final
+M4 `AgentOutput` after successful validation. Invalid JSON/schema is not repaired or guessed.
+
+Token estimates expose whether they are provider-reported, tokenizer-derived, conservatively
+estimated, or unavailable. Budget reservations move through `RESERVED`, `DISPATCHED`, `SETTLED`,
+`RELEASED`, or `UNCERTAIN`; a timeout after dispatch never assumes the provider did not charge.
+SQLite enforces unique invocation identity so the same invocation cannot dispatch twice.
+
+Provider smoke tests require an explicit flag, matching secret, and explicit model identifier:
+
+```powershell
+$env:RUN_OPENAI_SMOKE="true"
+$env:OPENAI_SMOKE_MODEL="YOUR_ACCEPTED_MODEL_ID"
+python -m pytest tests/integration/test_llm_provider_smoke.py -m llm_smoke
+```
+
+Use the analogous `RUN_ANTHROPIC_SMOKE` / `ANTHROPIC_SMOKE_MODEL` or
+`RUN_GEMINI_SMOKE` / `GEMINI_SMOKE_MODEL` variables. Credentials are loaded through the ignored
+`.env` settings shown in `.env.example`. Missing credentials leave that provider unaccepted for
+later runtime use but do not invalidate the provider-neutral M5 core.
+
 The M2 demo integration test is also explicit and read-only:
 
 ```powershell
@@ -237,22 +275,24 @@ python -m pytest tests/integration/test_market_snapshot_demo.py -m mt5_integrati
 ```text
 src/ai_trading_team/
 |-- config/          # Typed settings and milestone startup policy
-|-- schemas/         # Core, market, risk, agent, and orchestration contracts
+|-- schemas/         # Core, market, risk, agent, orchestration, and runtime contracts
 |-- utils/           # UTC time and structured logging helpers
 |-- mt5/             # M1 read-only client, backend protocol, and mappers
 |-- market/          # M2 read-only snapshot composition and freshness
 |-- risk/            # M3 proposal, account-guard, sizing, and decision logic
 |-- agents/          # M4 abstract roles, access rules, and runtime protocol
+|-- prompts/         # M5 immutable prompt artifacts and verified registry
+|-- runtime/         # M5 single-agent router, budgets, validation, and provider adapters
 |-- orchestration/   # M4 stages, failures, debate, and orchestration protocols
 |-- execution/       # Reserved; no execution code exists
 |-- backtest/        # Reserved for M7
-`-- storage/         # Reserved for a later audit repository
+`-- storage/         # M5 SQLite AI-budget ledger; broader audit storage remains deferred
 
 tests/
-|-- fakes/           # Terminal-independent MT5, market, risk, and agent fixtures
+|-- fakes/           # Terminal-independent MT5, market, risk, agent, and provider fixtures
 |-- unit/            # Domain, adapter, market, risk, agent, and policy tests
 |-- integration/     # Opt-in demo-terminal reads and snapshot composition
-`-- safety/          # Startup, read-only, and deterministic-risk safety tests
+`-- safety/          # Startup, read-only, risk, agent, and runtime safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -272,8 +312,12 @@ the M2 aggregate.
   loss-side valuation or currency conversion must be rejected by a future runtime until that
   contract gap is resolved.
 - M3 evaluates risk from a valid snapshot but does not decide whether stale data is tradeable.
-- M4 contains contracts and policy only: no concrete agent analysis, model adapter, prompt
-  content, scheduler, API cost accounting, or orchestration runtime exists.
+- M5 invokes only one explicitly requested agent. No multi-agent scheduling, decision-cycle
+  runtime, new-candle trigger, or provider fallback exists.
+- Optional real-provider smoke acceptance is tracked separately per provider. An untested
+  provider/model is not eligible for later runtime use.
+- Provider-neutral token estimation is explicitly conservative and may over-reserve; caller-owned
+  validated capability and pricing profiles remain required.
 - Quant roles may be assigned conditional or offline profiles, but M4 does not decide when to
   invoke them.
 - Performance review is reference-based and offline; no performance store or automatic strategy
@@ -281,5 +325,5 @@ the M2 aggregate.
 - Shadow automation, demo execution, and live safeguards beyond the M4 startup policy belong to
   later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M4_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M5_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.

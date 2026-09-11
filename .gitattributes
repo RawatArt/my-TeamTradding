@@ -1,0 +1,3 @@
+# Prompt digests are byte-exact across platforms.
+src/ai_trading_team/prompts/artifacts/*.md text eol=lf
+src/ai_trading_team/prompts/artifacts/manifest.toml text eol=lf

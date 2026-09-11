@@ -130,6 +130,18 @@ class AgentFrameworkSettings(BaseModel):
     max_debate_rounds: int = Field(default=1, ge=0, le=3)
 
 
+class LLMRuntimeSettings(BaseModel):
+    """M5 secrets and inert enablement; startup never invokes a provider automatically."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    budget_database_path: Path = Path("data/ai_budget.sqlite3")
+    openai_api_key: SecretStr | None = None
+    anthropic_api_key: SecretStr | None = None
+    gemini_api_key: SecretStr | None = None
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -151,3 +163,4 @@ class AppSettings(BaseSettings):
     market_data: MarketDataSettings = Field(default_factory=MarketDataSettings)
     risk: RiskConstitutionSettings = Field(default_factory=RiskConstitutionSettings)
     agents: AgentFrameworkSettings = Field(default_factory=AgentFrameworkSettings)
+    llm: LLMRuntimeSettings = Field(default_factory=LLMRuntimeSettings)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-trading-team"
-version = "0.5.0"
+version = "0.6.0"
 description = "A safety-first, AI-assisted trading research platform."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -17,6 +17,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+providers = [
+    "anthropic==1.5.0",
+    "google-genai==1.75.0",
+    "openai==2.54.0",
+]
 dev = [
     "mypy>=1.13,<2",
     "pytest>=8.3,<9",
@@ -29,6 +34,9 @@ ai-trading-team = "ai_trading_team.main:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"ai_trading_team.prompts" = ["artifacts/*.md", "artifacts/*.toml"]
+
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"
 cache_dir = ".cache/pytest"
@@ -37,6 +45,7 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 markers = [
     "mt5_integration: requires an explicitly enabled Windows MT5 demo terminal",
+    "llm_smoke: requires an explicitly enabled provider credential and performs a minimal model call",
 ]
 
 [tool.ruff]
@@ -52,3 +61,7 @@ python_version = "3.12"
 strict = true
 files = ["src", "tests"]
 warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["anthropic", "google", "google.*", "openai"]
+ignore_missing_imports = true

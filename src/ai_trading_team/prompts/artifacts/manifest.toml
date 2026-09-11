@@ -1,0 +1,62 @@
+[[prompts]]
+prompt_id = "market-context"
+prompt_version = "1.0.0"
+role = "MARKET_CONTEXT"
+file = "market_context_v1.md"
+content_digest = "sha256:6b55e9d40ca680ecc149c28b6fa5b8560a2e31da484eb0c7805fec2ae45a1171"
+
+[[prompts]]
+prompt_id = "trend-analyst"
+prompt_version = "1.0.0"
+role = "TREND_ANALYST"
+file = "trend_analyst_v1.md"
+content_digest = "sha256:89afdd3b78f3f385c63ed04c0cc59bbdd3590b7de48195585c03aebf30a55a0f"
+
+[[prompts]]
+prompt_id = "price-action"
+prompt_version = "1.0.0"
+role = "PRICE_ACTION_ANALYST"
+file = "price_action_v1.md"
+content_digest = "sha256:eb097028f17eef7b3623963e41d579d27ddd9c95dfc134b872dc94dce7c7cc1d"
+
+[[prompts]]
+prompt_id = "entry-analyst"
+prompt_version = "1.0.0"
+role = "ENTRY_ANALYST"
+file = "entry_analyst_v1.md"
+content_digest = "sha256:ea61f7cb719919be807683f16684191589e6928e4d0e60c8f488c86cca204e0d"
+
+[[prompts]]
+prompt_id = "quant-researcher"
+prompt_version = "1.0.0"
+role = "QUANT_RESEARCHER"
+file = "quant_researcher_v1.md"
+content_digest = "sha256:54c31954a4352fadf815a7a8580ce21a579d0bb474128860b7ff5b6cfc73ab77"
+
+[[prompts]]
+prompt_id = "senior-quant-developer"
+prompt_version = "1.0.0"
+role = "SENIOR_QUANT_DEVELOPER"
+file = "senior_quant_developer_v1.md"
+content_digest = "sha256:7ecfc0308f9e33ad6b12bc23293f28f74e2ff6713802eeaa1e80b01e7583630e"
+
+[[prompts]]
+prompt_id = "skeptic"
+prompt_version = "1.0.0"
+role = "SKEPTIC"
+file = "skeptic_v1.md"
+content_digest = "sha256:2c92c4d7eafd1fa956e24fd046793a5dd848d61367fe47f1143bfb86d52e2a12"
+
+[[prompts]]
+prompt_id = "chief-trader"
+prompt_version = "1.0.0"
+role = "CHIEF_TRADER"
+file = "chief_trader_v1.md"
+content_digest = "sha256:aa43e9323363c1475271312ff4b087c30846d6b14c0d5bb5348b73a4a2b7c30f"
+
+[[prompts]]
+prompt_id = "performance-reviewer"
+prompt_version = "1.0.0"
+role = "PERFORMANCE_REVIEWER"
+file = "performance_reviewer_v1.md"
+content_digest = "sha256:7c8e8e5114b789706bf99aee52b33a2b767fdecbb5cf8471072e26fa343cdb41"

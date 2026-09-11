@@ -1,4 +1,4 @@
-"""Vendor-neutral future runtime interface with no implementation or network access."""
+"""Vendor-neutral agent-to-runtime interface with no provider dependency."""
 
 from typing import Protocol, TypeVar
 
@@ -10,7 +10,7 @@ OutputT = TypeVar("OutputT", bound=CoreModel, covariant=True)
 
 
 class AgentRuntimeAdapter(Protocol[InputT, OutputT]):
-    """Future injected runtime boundary; M4 provides no implementing class."""
+    """Injected boundary that an implementation may delegate to the M5 runtime router."""
 
     async def invoke(self, descriptor: AgentDescriptor, context: InputT) -> OutputT:
         """Return a typed result without prescribing any model vendor."""

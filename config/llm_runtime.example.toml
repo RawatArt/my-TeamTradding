@@ -1,0 +1,18 @@
+# Example only. Prices and model capabilities are time-sensitive caller-owned data and must be
+# validated before use. No provider/model assignment is active by default.
+
+[runtime]
+enabled = false
+request_timeout_seconds = 30
+total_timeout_seconds = 90
+maximum_output_tokens = 1024
+
+[retry]
+max_attempts = 3
+retry_timeouts = true
+retry_transient_errors = true
+retry_rate_limits = false
+
+[acceptance]
+require_adapter_contract = true
+require_provider_live_smoke_for_runtime = true
