@@ -75,3 +75,9 @@ M6_STARTUP_POLICY = StartupPolicy(
     allowed_modes=frozenset({ApplicationMode.SHADOW}),
     allow_live_trading=False,
 )
+
+M7_STARTUP_POLICY = StartupPolicy(
+    milestone="M7",
+    allowed_modes=frozenset({ApplicationMode.SHADOW}),
+    allow_live_trading=False,
+)

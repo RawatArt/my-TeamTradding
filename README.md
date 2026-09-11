@@ -19,24 +19,23 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M6 - SHADOW multi-agent decision runtime**
+**M7 - deterministic Market Feature Engine**
 
-M6 adds a one-shot, explicitly invoked SHADOW cycle over the accepted M4 stage graph and M5
-single-agent runtime. It records agent outputs and failures, a Chief BUY/SELL/HOLD decision, the
-authoritative M3 Risk decision when applicable, and a non-executable shadow intent. There is no
-new-candle scheduler, continuous trading loop, or broker mutation path.
+M7 derives immutable EMA20/50/200, RSI14, ATR14, ADX14, candle geometry, confirmed swings,
+recent ranges, and signed price distances from the completed candles already contained in an
+accepted M2 `MarketSnapshot`. It adds no signal, score, strategy, scheduler, AI call, risk change,
+backtest, or broker access.
 
-The Performance Reviewer is confined to a separate retrospective pipeline. Quant Researcher and
-Senior Quant Developer are conditional/offline-capable rather than mandatory on every decision
-cycle. The realtime graph ends at the existing deterministic M3 Risk Engine; no agent can invoke
-it or bypass it.
+Feature availability is explicit: `VALID`, `INSUFFICIENT_HISTORY`, or `UNAVAILABLE`. Structural
+invalidity fails the complete calculation with a typed error. Stale-but-valid M2 observations
+remain valid feature inputs and retain their freshness metadata.
 
-`LIVE` remains part of the durable `ApplicationMode` type, but the M6 runtime policy permits only
-`SHADOW`. No execution path exists in this milestone.
+`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but the M7 startup policy
+permits only `SHADOW`. No execution path exists in this milestone.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M6. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M7. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -301,6 +300,25 @@ $env:TRADING_SYMBOL="YOUR_ALREADY_SELECTED_BROKER_SYMBOL"
 python -m pytest tests/integration/test_market_snapshot_demo.py -m mt5_integration
 ```
 
+## Deterministic market features
+
+`MarketFeatureEngine` is explicitly invoked with an accepted snapshot and requires no terminal,
+provider, Risk Engine, or clock:
+
+```python
+from ai_trading_team.config import AppSettings
+from ai_trading_team.features import MarketFeatureEngine, canonical_feature_json
+
+settings = AppSettings()
+feature_set = MarketFeatureEngine(settings.features).calculate(snapshot)
+canonical_bytes = canonical_feature_json(feature_set)
+```
+
+All calculations use a fixed local Decimal context. `generated_at` is the snapshot completion
+time, not wall-clock time. Candle and configuration digests use canonical sorted JSON, normalized
+Decimal strings, and fixed-width UTC timestamps. The same snapshot, configuration, and engine
+version therefore produce equal models and byte-identical canonical JSON.
+
 ## Project structure
 
 ```text
@@ -310,20 +328,21 @@ src/ai_trading_team/
 |-- utils/           # UTC time and structured logging helpers
 |-- mt5/             # M1 read-only client, backend protocol, and mappers
 |-- market/          # M2 read-only snapshot composition and freshness
+|-- features/        # M7 Decimal-only indicators, geometry, structure, and provenance
 |-- risk/            # M3 proposal, account-guard, sizing, and decision logic
 |-- agents/          # M4 abstract roles, access rules, and runtime protocol
 |-- prompts/         # M5 immutable prompt artifacts and verified registry
 |-- runtime/         # M5 single-agent router, budgets, validation, and provider adapters
 |-- orchestration/   # M4 contracts plus the M6 one-shot SHADOW cycle runtime
 |-- execution/       # Reserved; no execution code exists
-|-- backtest/        # Reserved for M7
+|-- backtest/        # Reserved; no backtesting implementation exists
 `-- storage/         # SQLite AI-budget and minimized M6 decision-audit repositories
 
 tests/
 |-- fakes/           # Terminal-independent MT5, market, risk, agent, provider, and cycle fixtures
-|-- unit/            # Domain, adapter, market, risk, agent, runtime, audit, and policy tests
-|-- integration/     # Fake SHADOW cycle plus explicit MT5/provider acceptance tests
-`-- safety/          # M0-M6 startup and architectural safety tests
+|-- unit/            # Domain, market-feature, risk, agent, runtime, audit, and policy tests
+|-- integration/     # Deterministic feature pipeline, fake SHADOW cycle, and opt-in tests
+`-- safety/          # M0-M7 startup, look-ahead, and architectural safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -343,6 +362,10 @@ the M2 aggregate.
   loss-side valuation or currency conversion must be rejected by a future runtime until that
   contract gap is resolved.
 - M3 evaluates risk from a valid snapshot but does not decide whether stale data is tradeable.
+- M7 exposes only latest-per-timeframe feature facts; it does not create signals, strategies, or
+  historical backtest series.
+- M7 feature output is not yet added to M4 agent views. That requires a separately reviewed agent
+  schema/prompt version change and must preserve the information-access matrix.
 - M6 runs only one explicitly requested decision cycle. It has no new-candle scheduler,
   continuous trading loop, automatic crash recovery, or provider fallback.
 - Optional real-provider smoke acceptance is tracked separately per provider. An untested
@@ -358,5 +381,5 @@ the M2 aggregate.
 - Demo execution, order lifecycle behavior, and live safeguards beyond the M6 SHADOW-only policy
   belong to later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M6_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M7_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.

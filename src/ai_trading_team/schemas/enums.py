@@ -439,3 +439,40 @@ class QuantStageSelection(StrEnum):
     SKIP = "SKIP"
     QUANT_RESEARCH_ONLY = "QUANT_RESEARCH_ONLY"
     QUANT_AND_SENIOR_REVIEW = "QUANT_AND_SENIOR_REVIEW"
+
+
+class FeatureAvailability(StrEnum):
+    """Availability of a structurally valid deterministic feature."""
+
+    VALID = "VALID"
+    INSUFFICIENT_HISTORY = "INSUFFICIENT_HISTORY"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class FeatureUnit(StrEnum):
+    """Units carried by numeric feature values without strategy semantics."""
+
+    PRICE = "PRICE"
+    INDEX = "INDEX"
+    RATIO = "RATIO"
+
+
+class FeatureWarningCode(StrEnum):
+    """Non-fatal findings retained with a valid M7 feature set."""
+
+    INSUFFICIENT_HISTORY = "INSUFFICIENT_HISTORY"
+    FEATURE_UNAVAILABLE = "FEATURE_UNAVAILABLE"
+    STALE_SOURCE = "STALE_SOURCE"
+
+
+class FeatureErrorCategory(StrEnum):
+    """Sanitized structural failures that prevent feature-set creation."""
+
+    INVALID_SNAPSHOT = "INVALID_SNAPSHOT"
+    INVALID_CANDLE_ORDER = "INVALID_CANDLE_ORDER"
+    FUTURE_CANDLE = "FUTURE_CANDLE"
+    INCOMPLETE_CANDLE = "INCOMPLETE_CANDLE"
+    TIMEFRAME_MISMATCH = "TIMEFRAME_MISMATCH"
+    SYMBOL_MISMATCH = "SYMBOL_MISMATCH"
+    CONFIGURATION_INCOMPATIBLE = "CONFIGURATION_INCOMPATIBLE"
+    CALCULATION_FAILURE = "CALCULATION_FAILURE"

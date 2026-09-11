@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
@@ -153,6 +153,23 @@ class ShadowRuntimeSettings(BaseModel):
     quant_stage_selection: QuantStageSelection = QuantStageSelection.SKIP
 
 
+class FeatureEngineSettings(BaseModel):
+    """Immutable M7 calculation choices included in feature provenance."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    configuration_version: Literal["1.0.0"] = "1.0.0"
+    recent_range_lookback: int = Field(default=20, ge=1, le=5_000)
+    swing_left_bars: int = Field(default=2, ge=1, le=100)
+    swing_right_bars: int = Field(default=2, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_history_bounds(self) -> "FeatureEngineSettings":
+        if self.swing_left_bars + self.swing_right_bars + 1 > 5_000:
+            raise ValueError("configured swing window exceeds the M2 candle-count boundary")
+        return self
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -176,3 +193,4 @@ class AppSettings(BaseSettings):
     agents: AgentFrameworkSettings = Field(default_factory=AgentFrameworkSettings)
     llm: LLMRuntimeSettings = Field(default_factory=LLMRuntimeSettings)
     shadow: ShadowRuntimeSettings = Field(default_factory=ShadowRuntimeSettings)
+    features: FeatureEngineSettings = Field(default_factory=FeatureEngineSettings)

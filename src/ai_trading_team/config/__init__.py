@@ -3,6 +3,7 @@
 from ai_trading_team.config.settings import (
     AgentFrameworkSettings,
     AppSettings,
+    FeatureEngineSettings,
     LLMRuntimeSettings,
     MarketDataSettings,
     MT5Settings,
@@ -17,6 +18,7 @@ from ai_trading_team.config.startup import (
     M4_STARTUP_POLICY,
     M5_STARTUP_POLICY,
     M6_STARTUP_POLICY,
+    M7_STARTUP_POLICY,
     StartupPolicy,
     StartupPolicyError,
 )
@@ -24,6 +26,7 @@ from ai_trading_team.config.startup import (
 __all__ = [
     "AgentFrameworkSettings",
     "AppSettings",
+    "FeatureEngineSettings",
     "LLMRuntimeSettings",
     "M0_STARTUP_POLICY",
     "M1_STARTUP_POLICY",
@@ -32,6 +35,7 @@ __all__ = [
     "M4_STARTUP_POLICY",
     "M5_STARTUP_POLICY",
     "M6_STARTUP_POLICY",
+    "M7_STARTUP_POLICY",
     "MarketDataSettings",
     "MT5Settings",
     "RiskConstitutionSettings",
