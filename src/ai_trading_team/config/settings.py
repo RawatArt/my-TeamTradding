@@ -170,6 +170,15 @@ class FeatureEngineSettings(BaseModel):
         return self
 
 
+class ReplaySettings(BaseModel):
+    """Inert M8 offline replay settings; no scheduler or download is represented."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    repository_path: Path = Path("data/replay.sqlite3")
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -194,3 +203,4 @@ class AppSettings(BaseSettings):
     llm: LLMRuntimeSettings = Field(default_factory=LLMRuntimeSettings)
     shadow: ShadowRuntimeSettings = Field(default_factory=ShadowRuntimeSettings)
     features: FeatureEngineSettings = Field(default_factory=FeatureEngineSettings)
+    replay: ReplaySettings = Field(default_factory=ReplaySettings)

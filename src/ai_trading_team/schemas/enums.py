@@ -476,3 +476,88 @@ class FeatureErrorCategory(StrEnum):
     SYMBOL_MISMATCH = "SYMBOL_MISMATCH"
     CONFIGURATION_INCOMPATIBLE = "CONFIGURATION_INCOMPATIBLE"
     CALCULATION_FAILURE = "CALCULATION_FAILURE"
+
+
+class DatasetPartitionKind(StrEnum):
+    """Immutable purpose of one historical dataset partition."""
+
+    RESEARCH = "RESEARCH"
+    VALIDATION = "VALIDATION"
+    OUT_OF_SAMPLE = "OUT_OF_SAMPLE"
+
+
+class ReplayDecisionSource(StrEnum):
+    """Non-provider source of a frozen historical proposal."""
+
+    SCRIPTED = "SCRIPTED"
+    SYNTHETIC = "SYNTHETIC"
+    FAKE_RUNTIME = "FAKE_RUNTIME"
+    PERSISTED_RECORD = "PERSISTED_RECORD"
+
+
+class EntryActivationPolicy(StrEnum):
+    """Explicit theoretical entry assumption used by M8."""
+
+    ACTIVE_AT_DECISION_CUTOFF = "ACTIVE_AT_DECISION_CUTOFF"
+
+
+class IntrabarPolicy(StrEnum):
+    """Treatment of unknowable event ordering inside one OHLC candle."""
+
+    MARK_AMBIGUOUS = "MARK_AMBIGUOUS"
+
+
+class OutcomeBasis(StrEnum):
+    """Execution/cost meaning of an M8 price-path outcome."""
+
+    THEORETICAL_LEVEL_TOUCH_NO_COSTS = "THEORETICAL_LEVEL_TOUCH_NO_COSTS"
+
+
+class TradeOutcomeStatus(StrEnum):
+    """Terminal state of one finite historical price-path evaluation."""
+
+    TAKE_PROFIT_REACHED = "TAKE_PROFIT_REACHED"
+    STOP_LOSS_REACHED = "STOP_LOSS_REACHED"
+    UNRESOLVED_HORIZON = "UNRESOLVED_HORIZON"
+    AMBIGUOUS_INTRABAR = "AMBIGUOUS_INTRABAR"
+
+
+class ResearchMetricStatus(StrEnum):
+    """Availability semantics for finite Decimal research metrics."""
+
+    VALID = "VALID"
+    UNAVAILABLE = "UNAVAILABLE"
+    UNBOUNDED = "UNBOUNDED"
+
+
+class SegmentDimension(StrEnum):
+    """Predeclared immutable facts allowed for descriptive grouping."""
+
+    DIRECTION = "DIRECTION"
+    TIMEFRAME = "TIMEFRAME"
+    PARTITION = "PARTITION"
+    FEATURE_REGIME = "FEATURE_REGIME"
+    VOLATILITY_BUCKET = "VOLATILITY_BUCKET"
+    TREND_STRENGTH_BUCKET = "TREND_STRENGTH_BUCKET"
+    CHIEF_DECISION = "CHIEF_DECISION"
+    SKEPTIC_DECISION = "SKEPTIC_DECISION"
+
+
+class ReplayErrorCategory(StrEnum):
+    """Sanitized failures that prevent a valid replay artifact."""
+
+    INVALID_DATASET = "INVALID_DATASET"
+    DATASET_DIGEST_MISMATCH = "DATASET_DIGEST_MISMATCH"
+    PARTITION_VIOLATION = "PARTITION_VIOLATION"
+    INVALID_REPLAY_CLOCK = "INVALID_REPLAY_CLOCK"
+    FUTURE_DATA_ACCESS = "FUTURE_DATA_ACCESS"
+    MISSING_AS_OF_OBSERVATION = "MISSING_AS_OF_OBSERVATION"
+    SNAPSHOT_REPRODUCTION_FAILURE = "SNAPSHOT_REPRODUCTION_FAILURE"
+    FEATURE_REPRODUCTION_FAILURE = "FEATURE_REPRODUCTION_FAILURE"
+    DECISION_NOT_FROZEN = "DECISION_NOT_FROZEN"
+    INVALID_PROPOSAL = "INVALID_PROPOSAL"
+    INVALID_RISK_LINKAGE = "INVALID_RISK_LINKAGE"
+    INVALID_OUTCOME_DATA = "INVALID_OUTCOME_DATA"
+    INVALID_HORIZON = "INVALID_HORIZON"
+    DUPLICATE_REPLAY_RECORD = "DUPLICATE_REPLAY_RECORD"
+    PERSISTENCE_FAILURE = "PERSISTENCE_FAILURE"

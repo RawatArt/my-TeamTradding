@@ -81,3 +81,16 @@ M7_STARTUP_POLICY = StartupPolicy(
     allowed_modes=frozenset({ApplicationMode.SHADOW}),
     allow_live_trading=False,
 )
+
+M8_STARTUP_POLICY = StartupPolicy(
+    milestone="M8",
+    allowed_modes=frozenset({ApplicationMode.BACKTEST, ApplicationMode.SHADOW}),
+    allow_live_trading=False,
+)
+
+
+def validate_m8_startup(settings: AppSettings) -> None:
+    """Allow explicit offline replay only in BACKTEST mode."""
+    M8_STARTUP_POLICY.validate(settings)
+    if settings.replay.enabled and settings.app_mode is not ApplicationMode.BACKTEST:
+        raise StartupPolicyError("M8 replay may be enabled only in BACKTEST mode")

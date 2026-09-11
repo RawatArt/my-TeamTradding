@@ -19,23 +19,25 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M7 - deterministic Market Feature Engine**
+**M8 - deterministic historical replay and outcome evaluation**
 
-M7 derives immutable EMA20/50/200, RSI14, ATR14, ADX14, candle geometry, confirmed swings,
-recent ranges, and signed price distances from the completed candles already contained in an
-accepted M2 `MarketSnapshot`. It adds no signal, score, strategy, scheduler, AI call, risk change,
-backtest, or broker access.
+M8 adds offline, reproducible historical decision-time reconstruction, unchanged M7 feature
+calculation, finite theoretical price-path outcomes, and R-based research summaries. Decision
+data is capability-capped at an explicit replay cutoff; outcome candles become available only
+after an immutable proposal is frozen.
 
-Feature availability is explicit: `VALID`, `INSUFFICIENT_HISTORY`, or `UNAVAILABLE`. Structural
-invalidity fails the complete calculation with a typed error. Stale-but-valid M2 observations
-remain valid feature inputs and retain their freshness metadata.
+The final decision candle cannot also be an outcome candle. Same-bar TP/SL touches are explicitly
+ambiguous, horizons are finite, and MFE/MAE terminates with the outcome. M8 reports theoretical
+level-touch results only; it does not simulate fills, costs, portfolio equity, or account
+drawdown.
 
-`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but the M7 startup policy
-permits only `SHADOW`. No execution path exists in this milestone.
+`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but M8 permits only inert
+`SHADOW` and explicit offline `BACKTEST`. Replay enablement requires `BACKTEST`. No execution path
+exists.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M7. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M8. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -319,6 +321,24 @@ time, not wall-clock time. Candle and configuration digests use canonical sorted
 Decimal strings, and fixed-width UTC timestamps. The same snapshot, configuration, and engine
 version therefore produce equal models and byte-identical canonical JSON.
 
+## Offline historical replay
+
+M8 sources deterministic local fixtures/files through separate decision and outcome views. At
+cutoff T, decision candles must close by T; outcome candles must open at or after T and close
+inside the selected partition and finite horizon. Partitions explicitly separate warm-up context
+from scored evaluation time and retain `RESEARCH`, `VALIDATION`, or `OUT_OF_SAMPLE` identity.
+
+The core outcome assumption is versioned and explicit: the frozen proposal is treated as active
+at its entry at T, and results describe theoretical TP/SL level touches without broker fills,
+commission, spread, slippage, or gap-price adjustment. `sequence_max_drawdown_r` measures an
+ordered sequence of resolved trade outcomes; it is not account, equity, or portfolio drawdown.
+
+Run the provider-free deterministic pipeline acceptance with:
+
+```powershell
+python -m pytest tests/integration/test_historical_replay_pipeline.py
+```
+
 ## Project structure
 
 ```text
@@ -329,20 +349,22 @@ src/ai_trading_team/
 |-- mt5/             # M1 read-only client, backend protocol, and mappers
 |-- market/          # M2 read-only snapshot composition and freshness
 |-- features/        # M7 Decimal-only indicators, geometry, structure, and provenance
+|-- replay/          # M8 offline clocks, capped sources, snapshots, frames, and freezing
+|-- evaluation/      # M8 finite outcomes, R metrics, and descriptive segmentation
 |-- risk/            # M3 proposal, account-guard, sizing, and decision logic
 |-- agents/          # M4 abstract roles, access rules, and runtime protocol
 |-- prompts/         # M5 immutable prompt artifacts and verified registry
 |-- runtime/         # M5 single-agent router, budgets, validation, and provider adapters
 |-- orchestration/   # M4 contracts plus the M6 one-shot SHADOW cycle runtime
 |-- execution/       # Reserved; no execution code exists
-|-- backtest/        # Reserved; no backtesting implementation exists
-`-- storage/         # SQLite AI-budget and minimized M6 decision-audit repositories
+|-- backtest/        # Reserved; no strategy backtester or optimizer exists
+`-- storage/         # Append-only budget, decision-audit, and replay repositories
 
 tests/
 |-- fakes/           # Terminal-independent MT5, market, risk, agent, provider, and cycle fixtures
 |-- unit/            # Domain, market-feature, risk, agent, runtime, audit, and policy tests
 |-- integration/     # Deterministic feature pipeline, fake SHADOW cycle, and opt-in tests
-`-- safety/          # M0-M7 startup, look-ahead, and architectural safety tests
+`-- safety/          # M0-M8 startup, look-ahead, and architectural safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -366,6 +388,11 @@ the M2 aggregate.
   historical backtest series.
 - M7 feature output is not yet added to M4 agent views. That requires a separately reviewed agent
   schema/prompt version change and must preserve the information-access matrix.
+- M8 outcomes are theoretical OHLC level-touch measurements, not executed fills or cash P&L.
+- M8 does not reconstruct portfolio equity or fabricate historical `AccountRiskContext` values.
+- OHLC cannot reveal intrabar event ordering; dual TP/SL touches remain ambiguous.
+- Historical datasets lacking complete accepted as-of observations cannot reproduce an M2
+  snapshot; M8 never fabricates the missing snapshot or historical account state.
 - M6 runs only one explicitly requested decision cycle. It has no new-candle scheduler,
   continuous trading loop, automatic crash recovery, or provider fallback.
 - Optional real-provider smoke acceptance is tracked separately per provider. An untested
@@ -381,5 +408,5 @@ the M2 aggregate.
 - Demo execution, order lifecycle behavior, and live safeguards beyond the M6 SHADOW-only policy
   belong to later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M7_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M8_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.
