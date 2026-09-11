@@ -122,6 +122,14 @@ class RiskConstitutionSettings(BaseModel):
         return self
 
 
+class AgentFrameworkSettings(BaseModel):
+    """Inert M4 policy settings; these do not schedule or invoke an agent."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    max_debate_rounds: int = Field(default=1, ge=0, le=3)
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -142,3 +150,4 @@ class AppSettings(BaseSettings):
     mt5: MT5Settings = Field(default_factory=MT5Settings)
     market_data: MarketDataSettings = Field(default_factory=MarketDataSettings)
     risk: RiskConstitutionSettings = Field(default_factory=RiskConstitutionSettings)
+    agents: AgentFrameworkSettings = Field(default_factory=AgentFrameworkSettings)

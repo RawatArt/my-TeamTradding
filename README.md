@@ -19,19 +19,23 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M3 - Deterministic Risk Engine and position sizing**
+**M4 - Agent foundation and orchestration contracts**
 
-M3 validates a `TradeProposal` against an accepted M2 `MarketSnapshot`, caller-supplied account
-risk baselines, and broker metadata. It deterministically validates BUY/SELL geometry, mandatory
-stops, minimum risk/reward, account guards, and broker-volume sizing, then returns an immutable
-`RiskDecision` with typed reasons. It cannot submit or modify a trade.
+M4 defines nine typed agent roles, immutable input/output envelopes, least-privilege information
+views, deterministic stage metadata, bounded debate rules, and vendor-neutral future runtime
+interfaces. It makes no model or network call and implements no scheduler or trading loop.
 
-`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M3 startup policy
+The Performance Reviewer is confined to a separate retrospective pipeline. Quant Researcher and
+Senior Quant Developer are conditional/offline-capable rather than mandatory on every decision
+cycle. The realtime graph ends at the existing deterministic M3 Risk Engine; no agent can invoke
+it or bypass it.
+
+`LIVE` remains part of the durable `ApplicationMode` type, but the replaceable M4 startup policy
 rejects it. No execution path exists in this milestone.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M3. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M4. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -192,6 +196,34 @@ decision = RiskEngine(RiskConstitutionSettings()).evaluate(
 )
 ```
 
+## Agent contracts and orchestration policy
+
+All role outputs use one strict envelope containing `cycle_id`, `snapshot_id`, output identity,
+agent and prompt versions, vendor-neutral runtime/policy references, an explicit UTC production
+time, descriptive confidence, evidence, warnings, invalidations, and a typed role payload.
+Confidence is intentionally absent from `TradeProposal`, `RiskDecision`, and position-sizing
+inputs.
+
+Agents receive `AgentMarketView`, a sanitized projection of the accepted M2 snapshot. It omits
+account identity, broker server metadata, open-position details, tick valuation, contract size,
+and volume limits. Agents have no MT5, credential, risk-engine, execution, or peer-agent handle.
+Only a future orchestrator may invoke an agent through `BaseAgent.analyze()`.
+
+The declared realtime dependency order is:
+
+```text
+Stage 1 (parallel): Market Context | Trend Analyst | Price Action Analyst
+Stage 2:            Entry Analyst
+Stage 3 (optional): Quant Researcher | Senior Quant Developer
+Stage 4:            Skeptic
+Stage 5:            Chief Trader
+Stage 6:            deterministic Risk Engine
+```
+
+M4 defines policy only; it does not schedule these stages. Stale-but-valid M2 data remains valid.
+For a future realtime decision cycle, M4 policy maps a stale snapshot to `HOLD` without changing
+the snapshot or making stale synonymous with invalid.
+
 The M2 demo integration test is also explicit and read-only:
 
 ```powershell
@@ -205,20 +237,20 @@ python -m pytest tests/integration/test_market_snapshot_demo.py -m mt5_integrati
 ```text
 src/ai_trading_team/
 |-- config/          # Typed settings and milestone startup policy
-|-- schemas/         # Core, MT5, market, proposal, and risk-decision contracts
+|-- schemas/         # Core, market, risk, agent, and orchestration contracts
 |-- utils/           # UTC time and structured logging helpers
 |-- mt5/             # M1 read-only client, backend protocol, and mappers
 |-- market/          # M2 read-only snapshot composition and freshness
 |-- risk/            # M3 proposal, account-guard, sizing, and decision logic
-|-- agents/          # Reserved for M4
-|-- orchestration/   # Reserved for later decision-cycle orchestration
+|-- agents/          # M4 abstract roles, access rules, and runtime protocol
+|-- orchestration/   # M4 stages, failures, debate, and orchestration protocols
 |-- execution/       # Reserved; no execution code exists
 |-- backtest/        # Reserved for M7
 `-- storage/         # Reserved for a later audit repository
 
 tests/
-|-- fakes/           # Terminal-independent MT5 test double
-|-- unit/            # Domain, configuration, adapter, and snapshot tests
+|-- fakes/           # Terminal-independent MT5, market, risk, and agent fixtures
+|-- unit/            # Domain, adapter, market, risk, agent, and policy tests
 |-- integration/     # Opt-in demo-terminal reads and snapshot composition
 `-- safety/          # Startup, read-only, and deterministic-risk safety tests
 ```
@@ -240,9 +272,14 @@ the M2 aggregate.
   loss-side valuation or currency conversion must be rejected by a future runtime until that
   contract gap is resolved.
 - M3 evaluates risk from a valid snapshot but does not decide whether stale data is tradeable.
-- Agent and LLM behavior is deferred to M4.
-- Shadow automation, demo execution, and live safeguards beyond the M1 startup policy belong to
+- M4 contains contracts and policy only: no concrete agent analysis, model adapter, prompt
+  content, scheduler, API cost accounting, or orchestration runtime exists.
+- Quant roles may be assigned conditional or offline profiles, but M4 does not decide when to
+  invoke them.
+- Performance review is reference-based and offline; no performance store or automatic strategy
+  change exists.
+- Shadow automation, demo execution, and live safeguards beyond the M4 startup policy belong to
   later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M3_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M4_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.

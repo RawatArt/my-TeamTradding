@@ -5,9 +5,16 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from ai_trading_team.schemas.agents import AgentOutput
+from ai_trading_team.schemas.agents import TrendAnalysisOutput
 from ai_trading_team.schemas.decisions import TradeProposal
-from ai_trading_team.schemas.enums import Timeframe, TradeAction, TradeSide
+from ai_trading_team.schemas.enums import (
+    AgentOutputStatus,
+    AgentRole,
+    DirectionalBias,
+    Timeframe,
+    TradeSide,
+    TrendStrength,
+)
 from ai_trading_team.schemas.market import MarketQuote
 
 
@@ -21,6 +28,35 @@ def quote_payload() -> dict[str, object]:
         "bid": "1.08123",
         "ask": "1.08135",
         "spread": "0.00012",
+    }
+
+
+def agent_output_payload() -> dict[str, object]:
+    return {
+        "cycle_id": "cycle-001",
+        "snapshot_id": "snapshot-001",
+        "output_id": "output-001",
+        "produced_at": datetime.now(UTC),
+        "agent_name": "trend_analyst",
+        "agent_role": AgentRole.TREND_ANALYST,
+        "agent_version": "1.0.0",
+        "prompt_ref": {"prompt_id": "trend", "prompt_version": "1.0.0"},
+        "runtime_profile_ref": "runtime-default",
+        "invocation_policy_ref": "realtime-default",
+        "status": AgentOutputStatus.SUCCESS,
+        "confidence": "0.72",
+        "evidence": (
+            {
+                "evidence_id": "evidence-001",
+                "kind": "FACT",
+                "summary": "Completed H1 candle only",
+            },
+        ),
+        "payload": {
+            "bias": DirectionalBias.NEUTRAL,
+            "strength": TrendStrength.UNCERTAIN,
+            "summary": "No directional conclusion",
+        },
     }
 
 
@@ -72,17 +108,7 @@ def test_decimal_values_remain_decimal_through_python_and_json_boundaries() -> N
 
 
 def test_agent_output_is_traceable_and_confidence_is_decimal() -> None:
-    output = AgentOutput.model_validate(
-        {
-            "cycle_id": "cycle-001",
-            "timestamp": datetime.now(UTC),
-            "agent": "trend_analyst",
-            "agent_version": "1.0.0",
-            "decision": TradeAction.HOLD,
-            "confidence": "0.72",
-            "evidence": ("Completed H1 candle only",),
-        }
-    )
+    output = TrendAnalysisOutput.model_validate(agent_output_payload())
 
     assert output.confidence == Decimal("0.72")
     assert isinstance(output.confidence, Decimal)
@@ -90,17 +116,10 @@ def test_agent_output_is_traceable_and_confidence_is_decimal() -> None:
 
 
 def test_agent_confidence_outside_closed_unit_interval_is_rejected() -> None:
+    payload = agent_output_payload()
+    payload["confidence"] = "1.01"
     with pytest.raises(ValidationError):
-        AgentOutput.model_validate(
-            {
-                "cycle_id": "cycle-001",
-                "timestamp": datetime.now(UTC),
-                "agent": "trend_analyst",
-                "agent_version": "1.0.0",
-                "decision": TradeAction.HOLD,
-                "confidence": "1.01",
-            }
-        )
+        TrendAnalysisOutput.model_validate(payload)
 
 
 def test_trade_proposal_is_cycle_and_snapshot_traceable() -> None:

@@ -162,3 +162,153 @@ class BrokerPositionSide(IntEnum):
 
     BUY = 0
     SELL = 1
+
+
+class AgentRole(StrEnum):
+    """Stable identities for the nine specified AI roles."""
+
+    MARKET_CONTEXT = "MARKET_CONTEXT"
+    TREND_ANALYST = "TREND_ANALYST"
+    PRICE_ACTION_ANALYST = "PRICE_ACTION_ANALYST"
+    ENTRY_ANALYST = "ENTRY_ANALYST"
+    QUANT_RESEARCHER = "QUANT_RESEARCHER"
+    SENIOR_QUANT_DEVELOPER = "SENIOR_QUANT_DEVELOPER"
+    SKEPTIC = "SKEPTIC"
+    CHIEF_TRADER = "CHIEF_TRADER"
+    PERFORMANCE_REVIEWER = "PERFORMANCE_REVIEWER"
+
+
+class AgentExecutionProfile(StrEnum):
+    """Where a configured role is eligible to be invoked in a future runtime."""
+
+    REALTIME = "REALTIME"
+    CONDITIONAL = "CONDITIONAL"
+    OFFLINE = "OFFLINE"
+
+
+class AgentInvocationMode(StrEnum):
+    """Inert invocation-policy classification; M4 performs no scheduling."""
+
+    REALTIME = "REALTIME"
+    CANDIDATE_ONLY = "CANDIDATE_ONLY"
+    PERIODIC = "PERIODIC"
+    OFFLINE = "OFFLINE"
+
+
+class AgentOutputStatus(StrEnum):
+    """Status of a structurally valid agent output."""
+
+    SUCCESS = "SUCCESS"
+    DEGRADED = "DEGRADED"
+
+
+class AgentFailureCategory(StrEnum):
+    """Failures handled by deterministic orchestration policy."""
+
+    TIMEOUT = "TIMEOUT"
+    INVALID_OUTPUT = "INVALID_OUTPUT"
+    MISSING_REQUIRED_UPSTREAM = "MISSING_REQUIRED_UPSTREAM"
+    UNAVAILABLE_AGENT = "UNAVAILABLE_AGENT"
+    STALE_SNAPSHOT = "STALE_SNAPSHOT"
+    INVALID_SNAPSHOT = "INVALID_SNAPSHOT"
+    SCHEMA_MISMATCH = "SCHEMA_MISMATCH"
+    UNKNOWN = "UNKNOWN"
+
+
+class FailureDisposition(StrEnum):
+    """Safe action selected for an agent or input failure."""
+
+    CONTINUE_DEGRADED = "CONTINUE_DEGRADED"
+    HOLD = "HOLD"
+    ABORT_CYCLE = "ABORT_CYCLE"
+
+
+class EvidenceKind(StrEnum):
+    """Distinguishes observation from interpretation and quantitative claims."""
+
+    FACT = "FACT"
+    INTERPRETATION = "INTERPRETATION"
+    QUANTITATIVE = "QUANTITATIVE"
+
+
+class DirectionalBias(StrEnum):
+    """Directional analysis without an execution instruction."""
+
+    BULLISH = "BULLISH"
+    BEARISH = "BEARISH"
+    NEUTRAL = "NEUTRAL"
+
+
+class TrendStrength(StrEnum):
+    """Descriptive trend-strength classification."""
+
+    WEAK = "WEAK"
+    MODERATE = "MODERATE"
+    STRONG = "STRONG"
+    UNCERTAIN = "UNCERTAIN"
+
+
+class EntryDisposition(StrEnum):
+    """Permitted Entry Analyst outcomes."""
+
+    ENTER_NOW = "ENTER_NOW"
+    WAIT_PULLBACK = "WAIT_PULLBACK"
+    WAIT_BREAKOUT = "WAIT_BREAKOUT"
+    NO_ENTRY = "NO_ENTRY"
+
+
+class QuantEvidenceStatus(StrEnum):
+    """Whether supplied evidence supports a testable hypothesis."""
+
+    SUPPORTED = "SUPPORTED"
+    NOT_SUPPORTED = "NOT_SUPPORTED"
+    INCONCLUSIVE = "INCONCLUSIVE"
+
+
+class QuantReviewStatus(StrEnum):
+    """Senior Quant review outcome for evidence and data integrity."""
+
+    PASS = "PASS"
+    CAUTION = "CAUTION"
+    FAIL = "FAIL"
+
+
+class SkepticVerdict(StrEnum):
+    """Bounded challenge outcome from the Skeptic role."""
+
+    APPROVE = "APPROVE"
+    CAUTION = "CAUTION"
+    REJECT = "REJECT"
+
+
+class InformationResource(StrEnum):
+    """Resources governed by the M4 information-access matrix."""
+
+    MARKET_SNAPSHOT_VIEW = "MARKET_SNAPSHOT_VIEW"
+    UPSTREAM_AGENT_OUTPUTS = "UPSTREAM_AGENT_OUTPUTS"
+    TRADE_PROPOSAL = "TRADE_PROPOSAL"
+    QUANTITATIVE_EVIDENCE = "QUANTITATIVE_EVIDENCE"
+    RISK_DECISION = "RISK_DECISION"
+    PERFORMANCE_HISTORY = "PERFORMANCE_HISTORY"
+
+
+class PipelineKind(StrEnum):
+    """Separates current decisions from retrospective review."""
+
+    REALTIME_DECISION = "REALTIME_DECISION"
+    RETROSPECTIVE_REVIEW = "RETROSPECTIVE_REVIEW"
+
+
+class PipelineComponent(StrEnum):
+    """Agent and deterministic components addressable by stage definitions."""
+
+    MARKET_CONTEXT = "MARKET_CONTEXT"
+    TREND_ANALYST = "TREND_ANALYST"
+    PRICE_ACTION_ANALYST = "PRICE_ACTION_ANALYST"
+    ENTRY_ANALYST = "ENTRY_ANALYST"
+    QUANT_RESEARCHER = "QUANT_RESEARCHER"
+    SENIOR_QUANT_DEVELOPER = "SENIOR_QUANT_DEVELOPER"
+    SKEPTIC = "SKEPTIC"
+    CHIEF_TRADER = "CHIEF_TRADER"
+    PERFORMANCE_REVIEWER = "PERFORMANCE_REVIEWER"
+    RISK_ENGINE = "RISK_ENGINE"
