@@ -60,3 +60,66 @@ prompt_version = "1.0.0"
 role = "PERFORMANCE_REVIEWER"
 file = "performance_reviewer_v1.md"
 content_digest = "sha256:7c8e8e5114b789706bf99aee52b33a2b767fdecbb5cf8471072e26fa343cdb41"
+
+[[prompts]]
+prompt_id = "market-context"
+prompt_version = "2.0.0"
+role = "MARKET_CONTEXT"
+file = "market_context_v2.md"
+content_digest = "sha256:fb5f5380161a8fea9d63239c2b503bb7305577149057cf7a2cab98ab208bdc77"
+
+[[prompts]]
+prompt_id = "trend-analyst"
+prompt_version = "2.0.0"
+role = "TREND_ANALYST"
+file = "trend_analyst_v2.md"
+content_digest = "sha256:ea553992bc18482bbbce08902e0a74f8630c31431bc92025516051b30ce140e1"
+
+[[prompts]]
+prompt_id = "price-action"
+prompt_version = "2.0.0"
+role = "PRICE_ACTION_ANALYST"
+file = "price_action_v2.md"
+content_digest = "sha256:deaaf8cd06389cde9299de47a4148086b1fc13aabe7161d7ae2e17a08aca9517"
+
+[[prompts]]
+prompt_id = "entry-analyst"
+prompt_version = "2.0.0"
+role = "ENTRY_ANALYST"
+file = "entry_analyst_v2.md"
+content_digest = "sha256:bda100d40de83157f8ea7e928f6a23d29c9a56363a610a1e8b93b1968b748b35"
+
+[[prompts]]
+prompt_id = "quant-researcher"
+prompt_version = "2.0.0"
+role = "QUANT_RESEARCHER"
+file = "quant_researcher_v2.md"
+content_digest = "sha256:a1f49bac0d475990ed51ea9bdeabae897516feafae6e0042ef6e2bba3cd70560"
+
+[[prompts]]
+prompt_id = "senior-quant-developer"
+prompt_version = "2.0.0"
+role = "SENIOR_QUANT_DEVELOPER"
+file = "senior_quant_developer_v2.md"
+content_digest = "sha256:26687cd8d295c50f9ae8d435839e6944d6ffd30d668452211ef696a77dea7789"
+
+[[prompts]]
+prompt_id = "skeptic"
+prompt_version = "2.0.0"
+role = "SKEPTIC"
+file = "skeptic_v2.md"
+content_digest = "sha256:f0d4201030646e0ab1fcaa3cd02fb0dd136280a4f0efbc343848fb0444f40eed"
+
+[[prompts]]
+prompt_id = "chief-trader"
+prompt_version = "2.0.0"
+role = "CHIEF_TRADER"
+file = "chief_trader_v2.md"
+content_digest = "sha256:ffa0fb645321dd2a2590059a9132a25d976b37bb63c7a208006efd932e329d5d"
+
+[[prompts]]
+prompt_id = "performance-reviewer"
+prompt_version = "2.0.0"
+role = "PERFORMANCE_REVIEWER"
+file = "performance_reviewer_v2.md"
+content_digest = "sha256:5470397e5756ebb0c41bb3b86b6092b882567b1651277a6379d5076269c2493c"

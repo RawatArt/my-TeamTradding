@@ -1,5 +1,7 @@
 """Strict M4 agent metadata, sanitized market views, and role outputs."""
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from typing import Literal, Self
 
@@ -27,6 +29,7 @@ from ai_trading_team.schemas.enums import (
     DirectionalBias,
     EntryDisposition,
     EvidenceKind,
+    FeatureAvailability,
     MarketRegime,
     QuantEvidenceStatus,
     QuantReviewStatus,
@@ -37,6 +40,18 @@ from ai_trading_team.schemas.enums import (
     TradeAction,
     TradeSide,
     TrendStrength,
+)
+from ai_trading_team.schemas.features import (
+    CandleGeometryFeatures,
+    FeatureDefinitionVersions,
+    FeatureWarning,
+    MarketFeatureSet,
+    MarketStructureFeatures,
+    MomentumFeatures,
+    SourceCandleDigests,
+    TrendFeatures,
+    TrendStrengthFeatures,
+    VolatilityFeatures,
 )
 from ai_trading_team.schemas.market import MarketSnapshot, SnapshotFreshness
 
@@ -146,10 +161,137 @@ class AgentSymbolView(CoreModel):
     trading_mode: SymbolTradeMode
 
 
+class AgentTimeframeFeatureView(CoreModel):
+    """Allowlisted descriptive M7 facts for one timeframe."""
+
+    timeframe: Timeframe
+    source_candle_count: NonNegativeInt
+    source_first_candle_open_at: datetime
+    source_last_candle_open_at: datetime
+    source_last_candle_close_at: datetime
+    evaluation_candle_open_at: datetime
+    source_candle_digest: ContentDigest
+    availability: FeatureAvailability
+    trend: TrendFeatures
+    momentum: MomentumFeatures
+    volatility: VolatilityFeatures
+    trend_strength: TrendStrengthFeatures
+    candle_geometry: CandleGeometryFeatures
+    market_structure: MarketStructureFeatures
+
+    _normalize_time = field_validator(
+        "source_first_candle_open_at",
+        "source_last_candle_open_at",
+        "source_last_candle_close_at",
+        "evaluation_candle_open_at",
+    )(_utc)
+
+
+class AgentFeatureCollection(CoreModel):
+    """Fixed M15/H1/H4 descriptive feature projection."""
+
+    m15: AgentTimeframeFeatureView
+    h1: AgentTimeframeFeatureView
+    h4: AgentTimeframeFeatureView
+
+    @model_validator(mode="after")
+    def validate_timeframes(self) -> Self:
+        if (
+            self.m15.timeframe is not Timeframe.M15
+            or self.h1.timeframe is not Timeframe.H1
+            or self.h4.timeframe is not Timeframe.H4
+        ):
+            raise ValueError("agent features must contain M15, H1, and H4")
+        return self
+
+
+class AgentFeatureView(CoreModel):
+    """Exact allowlisted M7 projection supplied to agents; never a strategy signal."""
+
+    schema_version: Literal["1.0.0"] = "1.0.0"
+    allowlist_version: Literal["1.0.0"] = "1.0.0"
+    cycle_id: CycleId
+    snapshot_id: SnapshotId
+    symbol: Symbol
+    primary_timeframe: Timeframe
+    generated_at: datetime
+    source_feature_set_version: SchemaVersion
+    source_feature_engine_version: SchemaVersion
+    source_canonicalization_version: SchemaVersion
+    source_configuration_version: SchemaVersion
+    source_configuration_digest: ContentDigest
+    source_candle_digests: SourceCandleDigests
+    source_definition_versions: FeatureDefinitionVersions
+    source_decimal_precision: NonNegativeInt
+    source_decimal_rounding: str
+    timeframes: AgentFeatureCollection
+    warnings: tuple[FeatureWarning, ...] = ()
+
+    _normalize_time = field_validator("generated_at")(_utc)
+
+    @classmethod
+    def from_feature_set(cls, features: MarketFeatureSet) -> "AgentFeatureView":
+        def project(source: object) -> AgentTimeframeFeatureView:
+            from ai_trading_team.schemas.features import TimeframeFeatureSet
+
+            if not isinstance(source, TimeframeFeatureSet):
+                raise TypeError("feature collection contains an unexpected boundary type")
+            return AgentTimeframeFeatureView(
+                timeframe=source.timeframe,
+                source_candle_count=source.source_candle_count,
+                source_first_candle_open_at=source.source_first_candle_open_at,
+                source_last_candle_open_at=source.source_last_candle_open_at,
+                source_last_candle_close_at=source.source_last_candle_close_at,
+                evaluation_candle_open_at=source.evaluation_candle_open_at,
+                source_candle_digest=source.source_candle_digest,
+                availability=source.availability,
+                trend=source.trend,
+                momentum=source.momentum,
+                volatility=source.volatility,
+                trend_strength=source.trend_strength,
+                candle_geometry=source.candle_geometry,
+                market_structure=source.market_structure,
+            )
+
+        return cls(
+            cycle_id=features.cycle_id,
+            snapshot_id=features.snapshot_id,
+            symbol=features.symbol,
+            primary_timeframe=features.primary_timeframe,
+            generated_at=features.generated_at,
+            source_feature_set_version=features.feature_set_version,
+            source_feature_engine_version=features.feature_engine_version,
+            source_canonicalization_version=features.provenance.canonicalization_version,
+            source_configuration_version=features.provenance.configuration_version,
+            source_configuration_digest=features.provenance.configuration_digest,
+            source_candle_digests=features.provenance.source_candle_digests,
+            source_definition_versions=features.provenance.definition_versions,
+            source_decimal_precision=features.provenance.decimal_precision,
+            source_decimal_rounding=features.provenance.decimal_rounding,
+            timeframes=AgentFeatureCollection(
+                m15=project(features.timeframes.m15),
+                h1=project(features.timeframes.h1),
+                h4=project(features.timeframes.h4),
+            ),
+            warnings=features.warnings,
+        )
+
+    @property
+    def content_digest(self) -> ContentDigest:
+        encoded = json.dumps(
+            self.model_dump(mode="json"),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+        return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
 class AgentMarketView(CoreModel):
     """Least-privilege, immutable projection of one valid M2 snapshot."""
 
-    schema_version: SchemaVersion = "1.0.0"
+    schema_version: Literal["1.0.0", "2.0.0"] = "1.0.0"
     source_schema_version: SchemaVersion
     cycle_id: CycleId
     snapshot_id: SnapshotId
@@ -162,13 +304,21 @@ class AgentMarketView(CoreModel):
     freshness: SnapshotFreshness
     validation_warning_codes: tuple[SnapshotWarningCode, ...] = ()
     symbol_open_position_count: NonNegativeInt
+    features: AgentFeatureView | None = None
+    agent_feature_view_digest: ContentDigest | None = None
 
     _normalize_time = field_validator("snapshot_completed_at")(_utc)
 
     @classmethod
-    def from_snapshot(cls, snapshot: MarketSnapshot) -> "AgentMarketView":
+    def from_snapshot(
+        cls,
+        snapshot: MarketSnapshot,
+        features: MarketFeatureSet | None = None,
+    ) -> "AgentMarketView":
         """Create a safe projection without account identity or position details."""
+        feature_view = None if features is None else AgentFeatureView.from_feature_set(features)
         return cls(
+            schema_version="1.0.0" if feature_view is None else "2.0.0",
             source_schema_version=snapshot.schema_version,
             cycle_id=snapshot.cycle_id,
             snapshot_id=snapshot.snapshot_id,
@@ -202,6 +352,10 @@ class AgentMarketView(CoreModel):
                 warning.code for warning in snapshot.consistency.validation_warnings
             ),
             symbol_open_position_count=len(snapshot.open_positions),
+            features=feature_view,
+            agent_feature_view_digest=(
+                None if feature_view is None else feature_view.content_digest
+            ),
         )
 
     @staticmethod
@@ -237,6 +391,22 @@ class AgentMarketView(CoreModel):
             for candle in candles
         ):
             raise ValueError("market-view candles must match symbol and timeframe")
+        if self.schema_version == "1.0.0":
+            if self.features is not None or self.agent_feature_view_digest is not None:
+                raise ValueError("v1 market view cannot contain deterministic features")
+            return self
+        if self.features is None or self.agent_feature_view_digest is None:
+            raise ValueError("v2 market view requires an exact feature projection and digest")
+        if (
+            self.features.cycle_id != self.cycle_id
+            or self.features.snapshot_id != self.snapshot_id
+            or self.features.symbol != self.symbol
+            or self.features.primary_timeframe is not self.primary_timeframe
+            or self.features.generated_at != self.snapshot_completed_at
+        ):
+            raise ValueError("agent feature projection must match market-view trace")
+        if self.agent_feature_view_digest != self.features.content_digest:
+            raise ValueError("agent feature-view digest must match exact projected facts")
         return self
 
 

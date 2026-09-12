@@ -1,0 +1,14 @@
+# Copy to symbol_timestamp_acceptance.toml only after exact timestamp validation.
+# Never use this template as evidence and never apply a guessed timezone offset.
+
+# [[acceptance]]
+# acceptance_id = "operator-issued-identity"
+# symbol = "EXACT_BROKER_SYMBOL"
+# timeframes = ["M15", "H1", "H4"]
+# account_ref = "acct-v1:non-secret-fingerprint"
+# adapter_version = "1.0.0"
+# validation_policy_digest = "sha256:..."
+# test_result_id = "timestamp-validation-result"
+# tested_at = "2026-01-01T00:00:00Z"
+# expires_at = "2026-02-01T00:00:00Z"
+# accepted = true

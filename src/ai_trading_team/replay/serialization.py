@@ -2,7 +2,7 @@
 
 import hashlib
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -26,6 +26,8 @@ def canonical_value(value: Any) -> Any:
         return canonical_decimal(value)
     if isinstance(value, datetime):
         return canonical_timestamp(value)
+    if isinstance(value, date):
+        return value.isoformat()
     if isinstance(value, timedelta):
         return f"{_duration_microseconds(value)}us"
     if isinstance(value, Enum):

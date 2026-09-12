@@ -1,0 +1,22 @@
+# Copy only after exact M5, M6, and M9 provider/model acceptance has passed.
+# Digests and timestamps are intentionally omitted; never invent evidence.
+
+# [[acceptance]]
+# acceptance_id = "operator-issued-identity"
+# agent_role = "MARKET_CONTEXT"
+# provider = "OPENAI"
+# model_identifier = "validated-model-id"
+# adapter_version = "1.0.0"
+# provider_sdk_version = "validated-sdk-version"
+# capability_profile_digest = "sha256:..."
+# runtime_profile_digest = "sha256:..."
+# prompt_digest = "sha256:..."
+# input_schema_digest = "sha256:..."
+# output_schema_digest = "sha256:..."
+# feature_allowlist_version = "1.0.0"
+# feature_allowlist_digest = "sha256:..."
+# m5_live_smoke = { acceptance_id = "m5-smoke-id", evidence_digest = "sha256:...", accepted_at = "2026-01-01T00:00:00Z" }
+# m6_full_shadow = { acceptance_id = "m6-shadow-id", evidence_digest = "sha256:...", accepted_at = "2026-01-01T00:00:00Z" }
+# m9_feature_input = { acceptance_id = "m9-feature-id", evidence_digest = "sha256:...", accepted_at = "2026-01-01T00:00:00Z" }
+# accepted_at = "2026-01-01T00:00:00Z"
+# expires_at = "2026-02-01T00:00:00Z"

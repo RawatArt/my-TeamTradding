@@ -64,8 +64,8 @@ def test_feature_package_has_no_runtime_broker_risk_or_execution_dependency() ->
     assert all(item not in source for item in forbidden)
 
 
-def test_m7_does_not_expand_agent_market_view_contract() -> None:
+def test_m9_feature_expansion_preserves_legacy_view_as_feature_free() -> None:
     from ai_trading_team.schemas.agents import AgentMarketView
 
-    assert "features" not in AgentMarketView.model_fields
-
+    assert AgentMarketView.model_fields["features"].default is None
+    assert AgentMarketView.model_fields["agent_feature_view_digest"].default is None

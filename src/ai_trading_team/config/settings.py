@@ -179,6 +179,22 @@ class ReplaySettings(BaseModel):
     repository_path: Path = Path("data/replay.sqlite3")
 
 
+class ContinuousShadowSettings(BaseModel):
+    """Bounded M9 polling policy; disabled unless explicitly enabled in SHADOW."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    poll_interval_seconds: int = Field(default=5, ge=1, le=60)
+    discovery_lookback: int = Field(default=4, ge=1, le=100)
+    maximum_decision_age_seconds: int = Field(default=180, ge=1, le=900)
+    maximum_pending_cycles: Literal[1] = 1
+    shutdown_grace_seconds: int = Field(default=30, ge=1, le=300)
+    repository_path: Path = Path("data/continuous_shadow.sqlite3")
+    symbol_acceptance_path: Path = Path("config/symbol_timestamp_acceptance.toml")
+    provider_acceptance_path: Path = Path("config/continuous_shadow_acceptance.toml")
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -204,3 +220,6 @@ class AppSettings(BaseSettings):
     shadow: ShadowRuntimeSettings = Field(default_factory=ShadowRuntimeSettings)
     features: FeatureEngineSettings = Field(default_factory=FeatureEngineSettings)
     replay: ReplaySettings = Field(default_factory=ReplaySettings)
+    continuous_shadow: ContinuousShadowSettings = Field(
+        default_factory=ContinuousShadowSettings
+    )

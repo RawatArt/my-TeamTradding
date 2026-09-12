@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+config/provider_acceptance.toml
+config/continuous_shadow_acceptance.toml
+config/symbol_timestamp_acceptance.toml
 
 # Python environments and caches
 .venv/
@@ -13,6 +16,7 @@ __pycache__/
 .cache/
 .mypy_cache/
 .ruff_cache/
+.tmp/
 .coverage
 htmlcov/
 

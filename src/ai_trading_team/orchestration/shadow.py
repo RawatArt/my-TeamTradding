@@ -138,6 +138,8 @@ class ShadowCycleOrchestrator:
         self,
         snapshot: MarketSnapshot,
         account_risk_context: AccountRiskContext,
+        *,
+        market_view: AgentMarketView | None = None,
     ) -> ShadowDecisionRecord:
         """Run exactly one claimed SHADOW cycle; never schedule or execute a trade."""
         started_at = self._now()
@@ -146,7 +148,13 @@ class ShadowCycleOrchestrator:
             snapshot.snapshot_id,
             at=started_at,
         )
-        market = AgentMarketView.from_snapshot(snapshot)
+        market = market_view or AgentMarketView.from_snapshot(snapshot)
+        if (
+            market.cycle_id != snapshot.cycle_id
+            or market.snapshot_id != snapshot.snapshot_id
+            or market.symbol != snapshot.symbol
+        ):
+            raise ValueError("supplied agent market view does not match the snapshot")
         state = _CycleState(snapshot, account_risk_context, market, started_at)
         try:
             validate_shadow_inputs(snapshot, account_risk_context, started_at)

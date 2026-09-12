@@ -88,9 +88,26 @@ M8_STARTUP_POLICY = StartupPolicy(
     allow_live_trading=False,
 )
 
+M9_STARTUP_POLICY = StartupPolicy(
+    milestone="M9",
+    allowed_modes=frozenset({ApplicationMode.BACKTEST, ApplicationMode.SHADOW}),
+    allow_live_trading=False,
+)
+
 
 def validate_m8_startup(settings: AppSettings) -> None:
     """Allow explicit offline replay only in BACKTEST mode."""
     M8_STARTUP_POLICY.validate(settings)
     if settings.replay.enabled and settings.app_mode is not ApplicationMode.BACKTEST:
         raise StartupPolicyError("M8 replay may be enabled only in BACKTEST mode")
+
+
+def validate_m9_startup(settings: AppSettings) -> None:
+    """Keep continuous observation in SHADOW and offline replay in BACKTEST."""
+    M9_STARTUP_POLICY.validate(settings)
+    if settings.continuous_shadow.enabled and settings.app_mode is not ApplicationMode.SHADOW:
+        raise StartupPolicyError("M9 continuous observation requires SHADOW mode")
+    if settings.replay.enabled and settings.app_mode is not ApplicationMode.BACKTEST:
+        raise StartupPolicyError("M8 replay may be enabled only in BACKTEST mode")
+    if settings.continuous_shadow.enabled and settings.replay.enabled:
+        raise StartupPolicyError("continuous SHADOW and offline replay cannot run together")

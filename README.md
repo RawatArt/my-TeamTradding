@@ -19,25 +19,24 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M8 - deterministic historical replay and outcome evaluation**
+**M9 - continuous SHADOW observation runtime**
 
-M8 adds offline, reproducible historical decision-time reconstruction, unchanged M7 feature
-calculation, finite theoretical price-path outcomes, and R-based research summaries. Decision
-data is capability-capped at an explicit replay cutoff; outcome candles become available only
-after an immutable proposal is frozen.
+M9 adds a bounded, explicitly polled, single-symbol M15 observation coordinator. It reuses the
+accepted M1/M2 read pipeline, M7 features, M6 multi-agent SHADOW cycle, and M3 Risk Engine. It
+persists exactly-once candle claims and sanitized research records and cannot place an order.
 
 The final decision candle cannot also be an outcome candle. Same-bar TP/SL touches are explicitly
 ambiguous, horizons are finite, and MFE/MAE terminates with the outcome. M8 reports theoretical
 level-touch results only; it does not simulate fills, costs, portfolio equity, or account
 drawdown.
 
-`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but M8 permits only inert
+`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but M9 permits only inert
 `SHADOW` and explicit offline `BACKTEST`. Replay enablement requires `BACKTEST`. No execution path
 exists.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M8. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M9. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -339,6 +338,23 @@ Run the provider-free deterministic pipeline acceptance with:
 python -m pytest tests/integration/test_historical_replay_pipeline.py
 ```
 
+## Continuous SHADOW observation
+
+ContinuousShadowRuntime exposes only start, health, poll_once, and shutdown. It has no internal
+scheduler or execution interface. Each poll reads completed M15 candles, claims at most one
+timely unclaimed decision, builds an M2 snapshot with an opaque snapshot ID, validates the exact
+decision candle, calculates M7 features, constructs the M3 account context, and delegates the
+one-shot graph to M6.
+
+The persisted identity chain is decision_key to cycle_id to actual snapshot_id. Snapshot IDs are
+never derived from candle identity. Unfinished claims become ABANDONED on restart and are never
+automatically resumed. Missing or ambiguous risk baselines, stale snapshots, and pre-dispatch
+provider ineligibility produce typed policy HOLD records with zero provider dispatch.
+
+Risk baselines have explicit ACTIVE, SUPERSEDED, and INVALIDATED states. Exactly one compatible
+active record must cover the safe account fingerprint, UTC day, and context time. M9 never picks
+the newest baseline implicitly and never infers deposits or withdrawals.
+
 ## Project structure
 
 ```text
@@ -351,6 +367,7 @@ src/ai_trading_team/
 |-- features/        # M7 Decimal-only indicators, geometry, structure, and provenance
 |-- replay/          # M8 offline clocks, capped sources, snapshots, frames, and freezing
 |-- evaluation/      # M8 finite outcomes, R metrics, and descriptive segmentation
+|-- observation/     # M9 bounded continuous SHADOW coordination and eligibility gates
 |-- risk/            # M3 proposal, account-guard, sizing, and decision logic
 |-- agents/          # M4 abstract roles, access rules, and runtime protocol
 |-- prompts/         # M5 immutable prompt artifacts and verified registry
@@ -358,13 +375,13 @@ src/ai_trading_team/
 |-- orchestration/   # M4 contracts plus the M6 one-shot SHADOW cycle runtime
 |-- execution/       # Reserved; no execution code exists
 |-- backtest/        # Reserved; no strategy backtester or optimizer exists
-`-- storage/         # Append-only budget, decision-audit, and replay repositories
+`-- storage/         # Append-only budget, decision-audit, replay, and M9 observation repositories
 
 tests/
 |-- fakes/           # Terminal-independent MT5, market, risk, agent, provider, and cycle fixtures
 |-- unit/            # Domain, market-feature, risk, agent, runtime, audit, and policy tests
 |-- integration/     # Deterministic feature pipeline, fake SHADOW cycle, and opt-in tests
-`-- safety/          # M0-M8 startup, look-ahead, and architectural safety tests
+`-- safety/          # M0-M9 startup, look-ahead, and architectural safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -374,6 +391,10 @@ the M2 aggregate.
 
 ## Known limitations
 
+- M9 has no internal scheduler; callers must explicitly poll the bounded runtime.
+- M9 core acceptance uses fake providers. A real provider/model/role remains ineligible until
+  its exact M5, M6, and M9 evidence chain is recorded and current.
+- Risk baselines remain caller-attested; M9 does not infer deposits or withdrawals.
 - M2 and its M1 source are synchronous and Windows/MetaTrader-terminal dependent.
 - Broker symbols and contract properties vary and must be discovered rather than assumed.
 - M2 does not infer undocumented broker-server timezone offsets. Source times that appear in the
@@ -386,8 +407,8 @@ the M2 aggregate.
 - M3 evaluates risk from a valid snapshot but does not decide whether stale data is tradeable.
 - M7 exposes only latest-per-timeframe feature facts; it does not create signals, strategies, or
   historical backtest series.
-- M7 feature output is not yet added to M4 agent views. That requires a separately reviewed agent
-  schema/prompt version change and must preserve the information-access matrix.
+- M9 exposes M7 output through a strictly allowlisted, versioned `AgentFeatureView`; it does not
+  permit agents to recompute features or access raw feature-engine internals.
 - M8 outcomes are theoretical OHLC level-touch measurements, not executed fills or cash P&L.
 - M8 does not reconstruct portfolio equity or fabricate historical `AccountRiskContext` values.
 - OHLC cannot reveal intrabar event ordering; dual TP/SL touches remain ambiguous.
@@ -408,5 +429,5 @@ the M2 aggregate.
 - Demo execution, order lifecycle behavior, and live safeguards beyond the M6 SHADOW-only policy
   belong to later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M8_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M9_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.
