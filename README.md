@@ -19,24 +19,25 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M9 - continuous SHADOW observation runtime**
+**M10 - SHADOW qualification and graduation evidence**
 
-M9 adds a bounded, explicitly polled, single-symbol M15 observation coordinator. It reuses the
-accepted M1/M2 read pipeline, M7 features, M6 multi-agent SHADOW cycle, and M3 Risk Engine. It
-persists exactly-once candle claims and sanitized research records and cannot place an order.
+M10 adds a deterministic qualification layer over sealed M9 decision records, compatible M8
+outcomes, accepted dependency identities, operational evidence, and provider-cost telemetry. Its
+strongest result is `ELIGIBLE_FOR_DEMO_REVIEW`; this is a human-review state, not permission to
+enable DEMO, LIVE, or broker execution.
 
 The final decision candle cannot also be an outcome candle. Same-bar TP/SL touches are explicitly
 ambiguous, horizons are finite, and MFE/MAE terminates with the outcome. M8 reports theoretical
 level-touch results only; it does not simulate fills, costs, portfolio equity, or account
 drawdown.
 
-`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but M9 permits only inert
+`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but M10 permits only inert
 `SHADOW` and explicit offline `BACKTEST`. Replay enablement requires `BACKTEST`. No execution path
 exists.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M9. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M10. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -355,6 +356,34 @@ Risk baselines have explicit ACTIVE, SUPERSEDED, and INVALIDATED states. Exactly
 active record must cover the safe account fingerprint, UTC day, and context time. M9 never picks
 the newest baseline implicitly and never infers deposits or withdrawals.
 
+## SHADOW qualification evidence
+
+M10 is a separate, explicitly invoked evidence task. It reads a bounded predeclared interval from
+the accepted M9 audit repository, attaches only exact compatible M8 outcomes, and records the
+material provider, prompt, runtime, feature, Risk, outcome, pricing, and timestamp-acceptance
+dependencies. It never starts or polls the M9 runtime.
+
+Evidence follows an append-only `OPEN -> SEALED -> EVALUATED` lifecycle. Once sealed, decisions,
+outcomes, pricing, acceptance evidence, and dependencies cannot be changed or backfilled. More
+collection requires a new qualification run. Graduation consumes only sealed evidence.
+
+Evidence validity (`VALID`, `EXPIRED`, `INVALIDATED`, or `CONTAMINATED`) is separate from the
+historical graduation result (`ELIGIBLE_FOR_DEMO_REVIEW` or `NOT_ELIGIBLE`). Current eligibility
+requires both a passing result and currently valid evidence. Expiration therefore never becomes a
+false trading-performance failure and never rewrites the historical evaluation.
+
+Observed costs report settled spend and conservative uncertain reservations. The 30-day cost
+projection is a separate policy-labeled estimate and is never presented as provider billing.
+Win rate is descriptive by default and cannot be the sole graduation gate. Out-of-sample
+evidence, reviewed R-based performance rules, operational gates, and zero-tolerance safety gates
+remain explicit and versioned.
+
+Run the provider-free qualification acceptance with:
+
+```powershell
+python -m pytest tests/integration/test_m10_fake_qualification.py
+```
+
 ## Project structure
 
 ```text
@@ -368,6 +397,7 @@ src/ai_trading_team/
 |-- replay/          # M8 offline clocks, capped sources, snapshots, frames, and freezing
 |-- evaluation/      # M8 finite outcomes, R metrics, and descriptive segmentation
 |-- observation/     # M9 bounded continuous SHADOW coordination and eligibility gates
+|-- qualification/   # M10 evidence sealing, validity, metrics, and graduation gates
 |-- risk/            # M3 proposal, account-guard, sizing, and decision logic
 |-- agents/          # M4 abstract roles, access rules, and runtime protocol
 |-- prompts/         # M5 immutable prompt artifacts and verified registry
@@ -375,13 +405,13 @@ src/ai_trading_team/
 |-- orchestration/   # M4 contracts plus the M6 one-shot SHADOW cycle runtime
 |-- execution/       # Reserved; no execution code exists
 |-- backtest/        # Reserved; no strategy backtester or optimizer exists
-`-- storage/         # Append-only budget, decision-audit, replay, and M9 observation repositories
+`-- storage/         # Append-only budget, audit, replay, observation, and qualification stores
 
 tests/
 |-- fakes/           # Terminal-independent MT5, market, risk, agent, provider, and cycle fixtures
 |-- unit/            # Domain, market-feature, risk, agent, runtime, audit, and policy tests
 |-- integration/     # Deterministic feature pipeline, fake SHADOW cycle, and opt-in tests
-`-- safety/          # M0-M9 startup, look-ahead, and architectural safety tests
+`-- safety/          # M0-M10 startup, look-ahead, and architectural safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -391,6 +421,9 @@ the M2 aggregate.
 
 ## Known limitations
 
+- M10 does not enable DEMO or LIVE; eligibility means human review only.
+- M10 is not a portfolio simulator and reuses M8's theoretical R metrics without creating a
+  second outcome algorithm.
 - M9 has no internal scheduler; callers must explicitly poll the bounded runtime.
 - M9 core acceptance uses fake providers. A real provider/model/role remains ineligible until
   its exact M5, M6, and M9 evidence chain is recorded and current.
@@ -429,5 +462,5 @@ the M2 aggregate.
 - Demo execution, order lifecycle behavior, and live safeguards beyond the M6 SHADOW-only policy
   belong to later milestones and require their own acceptance criteria.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M9_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M10_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.

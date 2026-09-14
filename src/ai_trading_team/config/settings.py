@@ -195,6 +195,17 @@ class ContinuousShadowSettings(BaseModel):
     provider_acceptance_path: Path = Path("config/continuous_shadow_acceptance.toml")
 
 
+class QualificationSettings(BaseModel):
+    """Inert M10 qualification configuration; it never enables a trading mode."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    repository_path: Path = Path("data/qualification.sqlite3")
+    policy_path: Path = Path("config/shadow_graduation_policy.toml")
+    run_path: Path = Path("config/qualification_run.toml")
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -223,3 +234,4 @@ class AppSettings(BaseSettings):
     continuous_shadow: ContinuousShadowSettings = Field(
         default_factory=ContinuousShadowSettings
     )
+    qualification: QualificationSettings = Field(default_factory=QualificationSettings)

@@ -8,6 +8,7 @@ from ai_trading_team.config.settings import (
     LLMRuntimeSettings,
     MarketDataSettings,
     MT5Settings,
+    QualificationSettings,
     ReplaySettings,
     RiskConstitutionSettings,
     ShadowRuntimeSettings,
@@ -23,10 +24,12 @@ from ai_trading_team.config.startup import (
     M7_STARTUP_POLICY,
     M8_STARTUP_POLICY,
     M9_STARTUP_POLICY,
+    M10_STARTUP_POLICY,
     StartupPolicy,
     StartupPolicyError,
     validate_m8_startup,
     validate_m9_startup,
+    validate_m10_startup,
 )
 
 __all__ = [
@@ -45,8 +48,10 @@ __all__ = [
     "M7_STARTUP_POLICY",
     "M8_STARTUP_POLICY",
     "M9_STARTUP_POLICY",
+    "M10_STARTUP_POLICY",
     "MarketDataSettings",
     "MT5Settings",
+    "QualificationSettings",
     "ReplaySettings",
     "RiskConstitutionSettings",
     "ShadowRuntimeSettings",
@@ -54,4 +59,5 @@ __all__ = [
     "StartupPolicyError",
     "validate_m8_startup",
     "validate_m9_startup",
+    "validate_m10_startup",
 ]

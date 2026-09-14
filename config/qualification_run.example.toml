@@ -1,0 +1,8 @@
+# Illustrative identity file only. Actual M10 runs are built from typed, sealed evidence.
+qualification_run_id = "qualification-run-YYYYMMDD-001"
+generation_id = "accepted-generation-id"
+symbol = "YOUR_EXACT_BROKER_SYMBOL"
+timeframe = "M15"
+partition_declaration_ref = "predeclared-out-of-sample-partition"
+dependency_manifest_ref = "exact-material-dependency-manifest"
+evidence_dataset_ref = "sealed-evidence-dataset"

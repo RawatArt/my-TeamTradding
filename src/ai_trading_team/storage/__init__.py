@@ -6,6 +6,10 @@ from ai_trading_team.storage.observation import (
     ObservationRepository,
     SQLiteObservationRepository,
 )
+from ai_trading_team.storage.qualification import (
+    InMemoryQualificationRepository,
+    SQLiteQualificationRepository,
+)
 from ai_trading_team.storage.replay import (
     InMemoryReplayRepository,
     ReplayRepository,
@@ -23,6 +27,7 @@ __all__ = [
     "InMemoryShadowAuditRepository",
     "InMemoryReplayRepository",
     "InMemoryObservationRepository",
+    "InMemoryQualificationRepository",
     "ObservationRepository",
     "ReplayRepository",
     "ShadowAuditRepository",
@@ -30,4 +35,5 @@ __all__ = [
     "SQLiteShadowAuditRepository",
     "SQLiteReplayRepository",
     "SQLiteObservationRepository",
+    "SQLiteQualificationRepository",
 ]

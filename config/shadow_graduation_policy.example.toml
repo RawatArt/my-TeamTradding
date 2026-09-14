@@ -1,0 +1,25 @@
+# Reviewed M10 example only. Copy locally and choose thresholds before use.
+policy_ref = "shadow-graduation-policy-reviewed"
+policy_version = "1.0.0"
+minimum_completed_decision_cycles = 100
+minimum_ai_invoked_cycles = 100
+minimum_trade_candidates = 20
+minimum_risk_approved_intents = 10
+minimum_resolved_outcomes = 10
+maximum_runtime_failure_rate = "0.01"
+maximum_provider_failure_rate = "0.02"
+maximum_abandoned_cycles = 0
+maximum_unexplained_abandoned_cycles = 0
+maximum_total_assessed_observed_cost = "100.00"
+maximum_projected_30d_cost = "100.00"
+currency = "USD"
+expected_decisions_per_30d = 2880
+minimum_expectancy_r = "0.00"
+maximum_sequence_max_drawdown_r = "10.00"
+maximum_ambiguous_rate = "0.05"
+maximum_unresolved_rate = "0.20"
+
+# Win rate is descriptive by default. If reviewed as a mandatory gate, both fields
+# must be set explicitly; win rate can never be the only performance rule.
+# minimum_win_rate = "0.40"
+# win_rate_justification = "Reviewed rationale and evidence reference"

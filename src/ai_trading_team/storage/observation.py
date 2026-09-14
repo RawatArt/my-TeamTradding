@@ -50,6 +50,14 @@ class ObservationRepository(Protocol):
 
     def get_decision(self, decision_key: str) -> ContinuousDecisionRecord | None: ...
 
+    def claims_in_range(
+        self, *, started_at: datetime, ended_at: datetime
+    ) -> tuple[DecisionCandleClaim, ...]: ...
+
+    def decisions_in_range(
+        self, *, started_at: datetime, ended_at: datetime
+    ) -> tuple[ContinuousDecisionRecord, ...]: ...
+
     def append_baseline(self, record: RiskBaselineRecord) -> None: ...
 
     def active_baselines(
@@ -203,6 +211,44 @@ class InMemoryObservationRepository:
 
     def get_decision(self, decision_key: str) -> ContinuousDecisionRecord | None:
         return self._decisions.get(decision_key)
+
+    def claims_in_range(
+        self, *, started_at: datetime, ended_at: datetime
+    ) -> tuple[DecisionCandleClaim, ...]:
+        start, end = _utc(started_at), _utc(ended_at)
+        if end <= start:
+            raise ValueError("observation query range must be increasing")
+        return tuple(
+            sorted(
+                (
+                    item
+                    for item in self._claims.values()
+                    if start <= item.candle_close_at < end
+                ),
+                key=lambda item: (item.candle_close_at, item.decision_key),
+            )
+        )
+
+    def decisions_in_range(
+        self, *, started_at: datetime, ended_at: datetime
+    ) -> tuple[ContinuousDecisionRecord, ...]:
+        start, end = _utc(started_at), _utc(ended_at)
+        if end <= start:
+            raise ValueError("observation query range must be increasing")
+        claim_keys = {
+            item.decision_key
+            for item in self.claims_in_range(started_at=start, ended_at=end)
+        }
+        return tuple(
+            sorted(
+                (
+                    item
+                    for item in self._decisions.values()
+                    if item.decision_key in claim_keys
+                ),
+                key=lambda item: (item.recorded_at, item.decision_key),
+            )
+        )
 
     def append_baseline(self, record: RiskBaselineRecord) -> None:
         with self._lock:
