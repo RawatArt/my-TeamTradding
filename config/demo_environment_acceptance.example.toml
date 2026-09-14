@@ -1,0 +1,19 @@
+# Non-secret shape only. Placeholder digests and references confer no execution authority.
+# A real record must be produced by a separately reviewed DEMO-environment acceptance process.
+schema_version = "1.0.0"
+acceptance_id = "replace-with-reviewed-acceptance-id"
+account_ref = "acct-v1:REPLACE_WITH_64_HEX_CHARACTERS"
+environment_ref = "env-v1:REPLACE_WITH_64_HEX_CHARACTERS"
+account_mode = 0
+symbol = "YOUR_EXACT_BROKER_SYMBOL"
+package_version = "REPLACE"
+terminal_version = "REPLACE"
+terminal_build = 0
+adapter_version = "1.0.0"
+symbol_capability_digest = "sha256:REPLACE_WITH_64_HEX_CHARACTERS"
+execution_policy_digest = "sha256:REPLACE_WITH_64_HEX_CHARACTERS"
+evidence_ref = "replace-with-reviewed-evidence-ref"
+evidence_digest = "sha256:REPLACE_WITH_64_HEX_CHARACTERS"
+accepted_at = "REPLACE_WITH_UTC_TIMESTAMP"
+expires_at = "REPLACE_WITH_UTC_TIMESTAMP"
+accepted = true

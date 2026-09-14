@@ -69,9 +69,14 @@ def test_m6_modules_have_no_mt5_or_execution_dependency() -> None:
     assert "ai_trading_team.execution" not in source
 
 
-def test_production_has_no_broker_mutation_identifiers() -> None:
-    root = Path(__file__).parents[2] / "src" / "ai_trading_team"
-    source = "\n".join(path.read_text(encoding="utf-8") for path in root.rglob("*.py"))
+def test_m6_agent_runtime_and_orchestration_have_no_broker_mutation_identifiers() -> None:
+    package = Path(__file__).parents[2] / "src" / "ai_trading_team"
+    roots = (package / "agents", package / "runtime", package / "orchestration")
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for root in roots
+        for path in root.rglob("*.py")
+    )
     forbidden = (
         "order_send",
         "symbol_select",

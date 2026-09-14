@@ -34,6 +34,9 @@ def canonical_value(value: Any) -> Any:
         return value.value
     if isinstance(value, Mapping):
         return {str(key): canonical_value(item) for key, item in value.items()}
+    if isinstance(value, (set, frozenset)):
+        items = [canonical_value(item) for item in value]
+        return sorted(items, key=canonical_json_bytes)
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return [canonical_value(item) for item in value]
     return value

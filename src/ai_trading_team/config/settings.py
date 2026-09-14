@@ -206,6 +206,20 @@ class QualificationSettings(BaseModel):
     run_path: Path = Path("config/qualification_run.toml")
 
 
+class DemoExecutionSettings(BaseModel):
+    """Inert M11 DEMO execution wiring; startup never submits an order."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    enabled: bool = False
+    repository_path: Path = Path("data/demo_execution.sqlite3")
+    policy_path: Path = Path("config/demo_execution_policy.toml")
+    environment_acceptance_path: Path = Path(
+        "config/demo_environment_acceptance.toml"
+    )
+    approval_path: Path = Path("config/demo_execution_approval.toml")
+
+
 class AppSettings(BaseSettings):
     """Core configuration model, independent of milestone startup policy."""
 
@@ -235,3 +249,4 @@ class AppSettings(BaseSettings):
         default_factory=ContinuousShadowSettings
     )
     qualification: QualificationSettings = Field(default_factory=QualificationSettings)
+    demo_execution: DemoExecutionSettings = Field(default_factory=DemoExecutionSettings)

@@ -100,6 +100,14 @@ M10_STARTUP_POLICY = StartupPolicy(
     allow_live_trading=False,
 )
 
+M11_STARTUP_POLICY = StartupPolicy(
+    milestone="M11",
+    allowed_modes=frozenset(
+        {ApplicationMode.BACKTEST, ApplicationMode.SHADOW, ApplicationMode.DEMO}
+    ),
+    allow_live_trading=False,
+)
+
 
 def validate_m8_startup(settings: AppSettings) -> None:
     """Allow explicit offline replay only in BACKTEST mode."""
@@ -134,4 +142,25 @@ def validate_m10_startup(settings: AppSettings) -> None:
     if sum(enabled) > 1:
         raise StartupPolicyError(
             "qualification, continuous SHADOW, and replay must run as separate explicit tasks"
+        )
+
+
+def validate_m11_startup(settings: AppSettings) -> None:
+    """Require explicit DEMO execution enablement and keep all tasks isolated."""
+    M11_STARTUP_POLICY.validate(settings)
+    if settings.continuous_shadow.enabled and settings.app_mode is not ApplicationMode.SHADOW:
+        raise StartupPolicyError("M9 continuous observation requires SHADOW mode")
+    if settings.replay.enabled and settings.app_mode is not ApplicationMode.BACKTEST:
+        raise StartupPolicyError("M8 replay may be enabled only in BACKTEST mode")
+    if settings.demo_execution.enabled and settings.app_mode is not ApplicationMode.DEMO:
+        raise StartupPolicyError("M11 execution requires explicit DEMO mode")
+    enabled = (
+        settings.continuous_shadow.enabled,
+        settings.replay.enabled,
+        settings.qualification.enabled,
+        settings.demo_execution.enabled,
+    )
+    if sum(enabled) > 1:
+        raise StartupPolicyError(
+            "DEMO execution, qualification, continuous SHADOW, and replay are separate tasks"
         )

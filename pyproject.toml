@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-trading-team"
-version = "0.11.0"
+version = "0.12.0"
 description = "A safety-first, AI-assisted trading research platform."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -47,6 +47,7 @@ markers = [
     "mt5_integration: requires an explicitly enabled Windows MT5 demo terminal",
     "llm_smoke: requires an explicitly enabled provider credential and performs a minimal model call",
     "shadow_provider: requires an accepted provider/model and performs an explicit SHADOW cycle",
+    "mt5_demo_execution: requires explicit reviewed DEMO execution acceptance and may submit one protected DEMO order",
 ]
 
 [tool.ruff]

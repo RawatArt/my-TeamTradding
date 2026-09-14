@@ -28,6 +28,10 @@ AccountReference = Annotated[
     str,
     StringConstraints(pattern=r"^acct-v1:[0-9a-f]{64}$"),
 ]
+EnvironmentReference = Annotated[
+    str,
+    StringConstraints(pattern=r"^env-v1:[0-9a-f]{64}$"),
+]
 SchemaVersion = Annotated[
     str,
     StringConstraints(strip_whitespace=True, pattern=r"^\d+\.\d+\.\d+$"),

@@ -19,25 +19,25 @@ This repository makes no profitability claim and is not production-ready.
 
 ## Current milestone
 
-**M10 - SHADOW qualification and graduation evidence**
+**M11 - guarded, exactly-once DEMO execution core**
 
-M10 adds a deterministic qualification layer over sealed M9 decision records, compatible M8
-outcomes, accepted dependency identities, operational evidence, and provider-cost telemetry. Its
-strongest result is `ELIGIBLE_FOR_DEMO_REVIEW`; this is a human-review state, not permission to
-enable DEMO, LIVE, or broker execution.
+M11 adds an explicitly invoked path for at most one protected market order on one accepted DEMO
+environment. It requires a valid M10 qualification, exact real-provider acceptance evidence,
+fresh M2 execution observations, a fresh M3 Risk approval, immutable human approval, atomic claim
+ownership, and an ENABLED operator control state. It has no scheduler and startup never executes.
 
 The final decision candle cannot also be an outcome candle. Same-bar TP/SL touches are explicitly
 ambiguous, horizons are finite, and MFE/MAE terminates with the outcome. M8 reports theoretical
 level-touch results only; it does not simulate fills, costs, portfolio equity, or account
 drawdown.
 
-`LIVE` and `DEMO` remain part of the durable `ApplicationMode` type, but M10 permits only inert
-`SHADOW` and explicit offline `BACKTEST`. Replay enablement requires `BACKTEST`. No execution path
-exists.
+`LIVE` remains unconditionally prohibited. `DEMO` mode alone is insufficient to submit anything;
+M11 execution is disabled by default and all acceptance, approval, control, freshness, and Risk
+guards must pass again immediately before the single possible broker mutation.
 
 ## Environment setup
 
-Python 3.12 is the canonical runtime through M10. MetaTrader5 is available only on supported Windows
+Python 3.12 is the canonical runtime through M11. MetaTrader5 is available only on supported Windows
 x86-64 CPython environments. From PowerShell:
 
 ```powershell
@@ -384,6 +384,34 @@ Run the provider-free qualification acceptance with:
 python -m pytest tests/integration/test_m10_fake_qualification.py
 ```
 
+## Guarded DEMO execution
+
+`DemoExecutionService` is a one-shot coordinator, not a trading loop. It preserves the original
+analysis snapshot and SHADOW decision, builds a distinct `PRE_SEND_REVALIDATION` snapshot, and
+requires the existing deterministic M3 Risk Engine to approve the exact current price and account
+context. AI confidence is not an execution or sizing input.
+
+The durable sequence is `CLAIMED -> order_check -> FinalDispatchGuard -> DISPATCHING -> one
+possible order_send -> reconciliation`. `order_check` is non-submitting and never creates a
+`SUBMITTED` state. `DISPATCHING` is persisted before the external call. A timeout, crash, or
+unknown broker result can only enter reconciliation; the intent can never be resent.
+
+`FinalDispatchGuard` rechecks claim ownership, intent lifetime, human approval, execution-control
+state, DEMO account/environment identity, open positions, tick age, spread, price drift, symbol
+capability, and sealed Risk/qualification linkage. Any failed check produces zero submissions.
+Broker reconciliation uses composite account, symbol, side, volume, timing, broker ID, position,
+fill, SL, and TP evidence; comment and magic are supporting fields only.
+
+Run the broker-free core acceptance with:
+
+```powershell
+python -m pytest tests/integration/test_m11_fake_demo_execution.py
+```
+
+Real MT5 DEMO acceptance is separately gated and remains pending until reviewed environment and
+human-approval artifacts are explicitly configured. The core suite never uses a real account to
+make M11 pass. `LIVE` is prohibited under every M11 configuration.
+
 ## Project structure
 
 ```text
@@ -403,15 +431,15 @@ src/ai_trading_team/
 |-- prompts/         # M5 immutable prompt artifacts and verified registry
 |-- runtime/         # M5 single-agent router, budgets, validation, and provider adapters
 |-- orchestration/   # M4 contracts plus the M6 one-shot SHADOW cycle runtime
-|-- execution/       # Reserved; no execution code exists
+|-- execution/       # M11 guarded one-shot DEMO execution and composite reconciliation
 |-- backtest/        # Reserved; no strategy backtester or optimizer exists
-`-- storage/         # Append-only budget, audit, replay, observation, and qualification stores
+`-- storage/         # Append-only budget, audit, replay, qualification, and execution stores
 
 tests/
 |-- fakes/           # Terminal-independent MT5, market, risk, agent, provider, and cycle fixtures
 |-- unit/            # Domain, market-feature, risk, agent, runtime, audit, and policy tests
 |-- integration/     # Deterministic feature pipeline, fake SHADOW cycle, and opt-in tests
-`-- safety/          # M0-M10 startup, look-ahead, and architectural safety tests
+`-- safety/          # M0-M11 startup, look-ahead, and architectural safety tests
 ```
 
 Every snapshot retains both its decision/evaluation `cycle_id` and its distinct `snapshot_id`.
@@ -421,7 +449,10 @@ the M2 aggregate.
 
 ## Known limitations
 
-- M10 does not enable DEMO or LIVE; eligibility means human review only.
+- M11 core acceptance uses a fake adapter. Real MT5 DEMO submission/reconciliation acceptance is
+  separately gated and remains pending until an exact reviewed environment is configured.
+- M11 supports one initial protected market order only. It has no pending orders, pyramiding,
+  position closing/modification, SL/TP modification, blind resend, scheduler, or LIVE path.
 - M10 is not a portfolio simulator and reuses M8's theoretical R metrics without creating a
   second outcome algorithm.
 - M9 has no internal scheduler; callers must explicitly poll the bounded runtime.
@@ -459,8 +490,8 @@ the M2 aggregate.
   change exists.
 - Real-provider M6 acceptance remains provider/model-specific and requires a current hardened
   smoke record; the provider-neutral fake cycle does not confer real-provider eligibility.
-- Demo execution, order lifecycle behavior, and live safeguards beyond the M6 SHADOW-only policy
-  belong to later milestones and require their own acceptance criteria.
+- M10 qualification remains human-review evidence; M11 adds independent approval and environment
+  gates rather than treating qualification as automatic execution permission.
 
-See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M10_REPORT.md` for the authoritative scope
+See `MASTER_SPEC.md`, `AGENTS.md`, and `docs/milestones/M11_REPORT.md` for the authoritative scope
 and milestone status. Earlier accepted baselines remain documented under `docs/milestones/`.

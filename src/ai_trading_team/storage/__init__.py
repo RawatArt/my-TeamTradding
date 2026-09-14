@@ -1,6 +1,10 @@
 """Persistence adapters that remain outside trading execution."""
 
 from ai_trading_team.storage.ai_budget import SQLiteBudgetLedger
+from ai_trading_team.storage.execution import (
+    InMemoryDemoExecutionRepository,
+    SQLiteDemoExecutionRepository,
+)
 from ai_trading_team.storage.observation import (
     InMemoryObservationRepository,
     ObservationRepository,
@@ -28,6 +32,7 @@ __all__ = [
     "InMemoryReplayRepository",
     "InMemoryObservationRepository",
     "InMemoryQualificationRepository",
+    "InMemoryDemoExecutionRepository",
     "ObservationRepository",
     "ReplayRepository",
     "ShadowAuditRepository",
@@ -36,4 +41,5 @@ __all__ = [
     "SQLiteReplayRepository",
     "SQLiteObservationRepository",
     "SQLiteQualificationRepository",
+    "SQLiteDemoExecutionRepository",
 ]

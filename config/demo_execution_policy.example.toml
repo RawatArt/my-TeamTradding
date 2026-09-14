@@ -1,0 +1,19 @@
+# Reviewed M11 policy example. Copy to an ignored local file and review every value.
+policy_ref = "demo-execution-policy-reviewed"
+policy_version = "1.0.0"
+maximum_tick_age_seconds = 5
+maximum_decision_age_seconds = 300
+maximum_preflight_seconds = 15
+intent_ttl_seconds = 10
+maximum_spread_ticks = "20"
+maximum_price_drift_ticks = "5"
+maximum_adverse_slippage_ticks = "1"
+supported_execution_modes = ["INSTANT", "MARKET"]
+filling_mode = "FOK"
+maximum_account_positions_before_dispatch = 0
+maximum_symbol_positions_before_dispatch = 0
+require_initial_stop_loss = true
+require_initial_take_profit = true
+exact_volume_match_required = true
+magic = 110011
+comment_prefix = "ait-m11"
