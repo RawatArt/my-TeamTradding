@@ -3,6 +3,57 @@
 Date: 2026-09-14
 Status: Fully accepted (fake-adapter DEMO execution core); real MT5 DEMO acceptance pending
 
+## Real-DEMO acceptance addendum
+
+The operator-facing addendum is implemented but has not been run against a real broker. It adds:
+
+- finite-TTL, single-use readiness evidence bound to one run, candidate generation, accepted
+  account/environment, policy, and ENABLED execution-control event;
+- a distinct post-readiness human approval with `submission_limit = 1`;
+- exact Decimal-to-float transport evidence including `float.hex()`, `Decimal.from_float`, and
+  the separately labeled `Decimal(str(...))` reconstruction;
+- a trusted `RealDemoAcceptanceRecord` whose accepted state requires final `CONFIRMED` execution,
+  `CONFIRMED` composite reconciliation, one exact position, exact volume/SL/TP, and a
+  policy-compliant fill;
+- a readiness-only command and reviewed execute-once command documented in
+  `docs/acceptance/M11_REAL_DEMO_RUNBOOK.md`.
+
+No real order was submitted while implementing or verifying this addendum.
+
+### Addendum files
+
+- `config/m11_real_demo_acceptance.example.toml`
+- `docs/acceptance/M11_REAL_DEMO_RUNBOOK.md`
+- `docs/acceptance/M11_REAL_DEMO_ACCEPTANCE_REPORT.md`
+- `scripts/m11_real_demo_acceptance.py`
+- `src/ai_trading_team/schemas/execution_acceptance.py`
+- `src/ai_trading_team/execution/real_demo_acceptance.py`
+- `src/ai_trading_team/execution/vendor_boundary.py`
+- `src/ai_trading_team/storage/execution_acceptance.py`
+- `tests/unit/test_m11_real_demo_acceptance.py`
+- `tests/safety/test_m11_real_demo_acceptance_boundaries.py`
+
+### Addendum verification
+
+- Full default suite: **575 passed, 7 skipped**. All MT5/provider integrations, including the
+  real-DEMO mutation case, remained explicitly gated.
+- Ruff: **all checks passed**.
+- Strict mypy: **no issues found in 262 source files**.
+- All M0-M11 safety tests: **110 passed**.
+- Focused addendum unit/safety acceptance: **18 passed**.
+- Readiness-only tests proved zero execution claims, zero `order_check` calls, zero submissions,
+  and no candidate or readiness consumption.
+- Finite TTL, atomic single-use behavior across SQLite restart, and exact readiness, candidate,
+  account/environment, policy, and execution-control generation binding passed.
+- Vendor-boundary tests recorded the exact binary float through `Decimal.from_float` separately
+  from `Decimal(str(...))` and rejected off-grid or out-of-tolerance normalization.
+- A successful broker submission without final `CONFIRMED` composite reconciliation could not
+  construct `REAL_DEMO_ACCEPTED`.
+- Execute-once remained capped at one possible submission; reuse and ambiguous/crash paths did
+  not expose a resend route.
+- Default tests made no real terminal or broker call. No readiness or mutation operator command
+  was run during addendum verification.
+
 ## Baseline preservation
 
 - Started from accepted tag `m10-v0.11.0` on `feat/m11-demo-execution`.
@@ -43,7 +94,7 @@ Status: Fully accepted (fake-adapter DEMO execution core); real MT5 DEMO accepta
   become ENABLED.
 - Added disabled-by-default settings and an inert M11 startup policy. LIVE remains prohibited.
 
-## Final verification
+## Original M11 core verification
 
 Canonical environment: Windows x86-64, CPython 3.12.13.
 

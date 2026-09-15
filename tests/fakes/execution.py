@@ -10,6 +10,7 @@ from ai_trading_team.execution.identifiers import (
     symbol_definition_digest,
 )
 from ai_trading_team.execution.service import DemoExecutionService
+from ai_trading_team.execution.vendor_boundary import build_vendor_boundary_audit
 from ai_trading_team.replay.serialization import content_digest
 from ai_trading_team.risk import RiskEngine, account_fingerprint
 from ai_trading_team.schemas.enums import (
@@ -35,6 +36,7 @@ from ai_trading_team.schemas.execution import (
     FreshExecutionObservation,
     QualifiedDemoExecutionCandidate,
 )
+from ai_trading_team.schemas.execution_acceptance import VendorBoundaryAudit
 from ai_trading_team.schemas.market import MarketSnapshot
 from ai_trading_team.schemas.mt5 import MT5AccountInfo, MT5SymbolInfo, MT5TerminalHealth, MT5Tick
 from ai_trading_team.schemas.observation import AcceptanceEvidenceReference, RiskContextEvidence
@@ -129,6 +131,7 @@ class FakeDemoExecutionAdapter:
         self.check_calls = 0
         self.submit_calls = 0
         self.reconcile_calls = 0
+        self.vendor_audits: dict[str, VendorBoundaryAudit] = {}
 
     def get_execution_capabilities(self, symbol: str) -> DemoSymbolExecutionCapabilities:
         assert self.final_observation.capabilities.symbol == symbol
@@ -154,6 +157,11 @@ class FakeDemoExecutionAdapter:
 
     def submit_demo_market_intent(self, intent: DemoOrderIntent) -> DemoSubmissionReceipt:
         self.submit_calls += 1
+        self.vendor_audits[intent.execution_intent_id] = build_vendor_boundary_audit(
+            intent,
+            self.final_observation.symbol_info,
+            audited_at=intent.created_at + timedelta(milliseconds=240),
+        )
         if self.crash_on_submit:
             raise KeyboardInterrupt("simulated process crash after durable DISPATCHING")
         if self.raise_on_submit:
@@ -173,6 +181,11 @@ class FakeDemoExecutionAdapter:
             evidence=evidence,
             sanitized_detail="fake normalized submission",
         )
+
+    def get_vendor_boundary_audit(
+        self, execution_intent_id: str
+    ) -> VendorBoundaryAudit | None:
+        return self.vendor_audits.get(execution_intent_id)
 
     def find_broker_evidence(
         self,

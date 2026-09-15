@@ -5,6 +5,10 @@ from ai_trading_team.storage.execution import (
     InMemoryDemoExecutionRepository,
     SQLiteDemoExecutionRepository,
 )
+from ai_trading_team.storage.execution_acceptance import (
+    InMemoryRealDemoAcceptanceRepository,
+    SQLiteRealDemoAcceptanceRepository,
+)
 from ai_trading_team.storage.observation import (
     InMemoryObservationRepository,
     ObservationRepository,
@@ -33,6 +37,7 @@ __all__ = [
     "InMemoryObservationRepository",
     "InMemoryQualificationRepository",
     "InMemoryDemoExecutionRepository",
+    "InMemoryRealDemoAcceptanceRepository",
     "ObservationRepository",
     "ReplayRepository",
     "ShadowAuditRepository",
@@ -42,4 +47,5 @@ __all__ = [
     "SQLiteObservationRepository",
     "SQLiteQualificationRepository",
     "SQLiteDemoExecutionRepository",
+    "SQLiteRealDemoAcceptanceRepository",
 ]

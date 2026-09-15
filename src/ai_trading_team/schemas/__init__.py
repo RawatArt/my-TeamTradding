@@ -153,6 +153,14 @@ from ai_trading_team.schemas.execution import (
     FreshRiskRevalidation,
     QualifiedDemoExecutionCandidate,
 )
+from ai_trading_team.schemas.execution_acceptance import (
+    RealDemoAcceptanceRecord,
+    RealDemoAcceptanceStatus,
+    RealDemoMutationApproval,
+    RealDemoReadinessRecord,
+    VendorBoundaryAudit,
+    VendorFloatValueAudit,
+)
 from ai_trading_team.schemas.features import (
     CandleGeometryFeatures,
     DecimalFeatureValue,
@@ -568,6 +576,12 @@ __all__ = [
     "QualifiedRoleAssignment",
     "QualifiedDemoExecutionCandidate",
     "CompositeBrokerEvidence",
+    "RealDemoAcceptanceRecord",
+    "RealDemoAcceptanceStatus",
+    "RealDemoMutationApproval",
+    "RealDemoReadinessRecord",
+    "VendorBoundaryAudit",
+    "VendorFloatValueAudit",
     "ShadowGraduationEvaluation",
     "ShadowGraduationPolicy",
 ]

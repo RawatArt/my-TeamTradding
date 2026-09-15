@@ -1,0 +1,20 @@
+# Copy to a local ignored file before any operator procedure.
+# Every referenced JSON/SQLite artifact must already bind the accepted DEMO account.
+
+[operator]
+acceptance_run_id = "replace-with-unique-readiness-run-id"
+readiness_generation_id = "replace-with-unique-readiness-generation-id"
+readiness_ttl_seconds = 300
+claim_owner = "replace-with-operator-session-id"
+
+[paths]
+candidate = "../data/local/m11_candidate.json"
+environment_acceptance = "../data/local/m11_environment_acceptance.json"
+execution_policy = "../data/local/m11_execution_policy.json"
+execution_repository = "../data/local/m11_execution.sqlite3"
+observation_repository = "../data/local/m9_observation.sqlite3"
+acceptance_repository = "../data/local/m11_real_demo_acceptance.sqlite3"
+readiness_output = "../data/local/m11_readiness.json"
+readiness_input = "../data/local/m11_readiness.json"
+mutation_approval = "../data/local/m11_mutation_approval.json"
+acceptance_output = "../data/local/m11_real_demo_result.json"

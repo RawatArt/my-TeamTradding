@@ -5,6 +5,8 @@
 config/provider_acceptance.toml
 config/continuous_shadow_acceptance.toml
 config/symbol_timestamp_acceptance.toml
+config/m11_real_demo_acceptance.local.toml
+data/local/
 
 # Python environments and caches
 .venv/

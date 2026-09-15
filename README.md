@@ -35,6 +35,13 @@ drawdown.
 M11 execution is disabled by default and all acceptance, approval, control, freshness, and Risk
 guards must pass again immediately before the single possible broker mutation.
 
+The real-DEMO acceptance addendum adds a separate finite-TTL readiness phase and a fresh human
+approval bound to one candidate, environment, policy, and execution-control generation.
+Readiness performs terminal reads only: it creates no execution claim and makes no broker check
+or submission. The separately gated execute-once command consumes readiness before delegating to
+the existing M11 state machine. See `docs/acceptance/M11_REAL_DEMO_RUNBOOK.md`; real broker
+acceptance remains pending.
+
 ## Environment setup
 
 Python 3.12 is the canonical runtime through M11. MetaTrader5 is available only on supported Windows

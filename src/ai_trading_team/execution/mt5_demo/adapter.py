@@ -12,6 +12,7 @@ from ai_trading_team.execution.mt5_demo.mappers import (
     map_order_check,
     map_submission_receipt,
 )
+from ai_trading_team.execution.vendor_boundary import build_vendor_boundary_audit
 from ai_trading_team.mt5.mappers import (
     map_account_info,
     map_position,
@@ -37,6 +38,7 @@ from ai_trading_team.schemas.execution import (
     DemoSymbolExecutionCapabilities,
     FinalDispatchObservation,
 )
+from ai_trading_team.schemas.execution_acceptance import VendorBoundaryAudit
 from ai_trading_team.utils.time import utc_now
 
 
@@ -54,6 +56,7 @@ class MT5DemoExecutionAdapter:
         self._backend = backend
         self._clock = clock
         self._last_guard_observation: dict[str, FinalDispatchObservation] = {}
+        self._vendor_audits: dict[str, VendorBoundaryAudit] = {}
         self._lock = RLock()
 
     def get_execution_capabilities(self, symbol: str) -> DemoSymbolExecutionCapabilities:
@@ -134,6 +137,12 @@ class MT5DemoExecutionAdapter:
             dispatch_started_at = self._clock()
             if dispatch_started_at >= intent.expires_at:
                 raise self._error("sealed DEMO intent expired before broker dispatch")
+            audit = build_vendor_boundary_audit(
+                intent,
+                observation.symbol_info,
+                audited_at=dispatch_started_at,
+            )
+            self._vendor_audits[intent.execution_intent_id] = audit
             raw = self._backend.submit_protected_market_request(self._request(intent))
             dispatch_completed_at = self._clock()
             return map_submission_receipt(
@@ -145,6 +154,12 @@ class MT5DemoExecutionAdapter:
                 account_ref=observation.account_ref,
                 environment_ref=observation.environment_ref,
             )
+
+    def get_vendor_boundary_audit(
+        self, execution_intent_id: str
+    ) -> VendorBoundaryAudit | None:
+        with self._lock:
+            return self._vendor_audits.get(execution_intent_id)
 
     def find_broker_evidence(
         self,
@@ -202,6 +217,7 @@ class MT5DemoExecutionAdapter:
         with self._lock:
             self._backend.shutdown()
             self._last_guard_observation.clear()
+            self._vendor_audits.clear()
 
     def _request(self, intent: DemoOrderIntent) -> dict[str, object]:
         request: dict[str, object] = {

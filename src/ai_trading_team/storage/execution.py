@@ -112,6 +112,10 @@ class InMemoryDemoExecutionRepository:
                 else ExecutionControlState.DISABLED
             )
 
+    def current_control_event(self) -> ExecutionControlEvent | None:
+        with self._lock:
+            return self._control_events[-1] if self._control_events else None
+
     def claim(
         self,
         intent: DemoOrderIntent,

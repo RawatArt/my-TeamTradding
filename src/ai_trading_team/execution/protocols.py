@@ -21,6 +21,7 @@ from ai_trading_team.schemas.execution import (
     FreshExecutionObservation,
     FreshRiskRevalidation,
 )
+from ai_trading_team.schemas.execution_acceptance import VendorBoundaryAudit
 
 
 class DemoExecutionObservationSource(Protocol):
@@ -43,6 +44,10 @@ class DemoExecutionAdapter(Protocol):
     def observe_final_dispatch(self, intent: DemoOrderIntent) -> FinalDispatchObservation: ...
 
     def submit_demo_market_intent(self, intent: DemoOrderIntent) -> DemoSubmissionReceipt: ...
+
+    def get_vendor_boundary_audit(
+        self, execution_intent_id: str
+    ) -> VendorBoundaryAudit | None: ...
 
     def find_broker_evidence(
         self,
@@ -78,6 +83,8 @@ class DemoExecutionRepository(Protocol):
     def append_control_event(self, event: ExecutionControlEvent) -> None: ...
 
     def control_state(self) -> ExecutionControlState: ...
+
+    def current_control_event(self) -> ExecutionControlEvent | None: ...
 
     def claim(
         self,
